@@ -1,0 +1,15 @@
+[
+  {
+    "modid": "nightx-oss",
+    "name": "NightX-OSS",
+    "description": "A Minecraft Forge Mixin-Based Hacked Client.",
+    "version": "Release",
+    "mcversion": "1.8.9",
+    "url": "",
+    "authorList": [
+      "As_pw"
+    ],
+    "screenshots": [],
+    "dependencies": []
+  }
+]
