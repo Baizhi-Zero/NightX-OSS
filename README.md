@@ -45,7 +45,7 @@ This project is built upon and inspired by the incredible work of the open-sourc
 > * **在任何情况下，绝不得就本项目的代码、Bug、崩溃或使用问题，向原作者 (`Aspw-w`) 进行任何反馈或骚扰！**
 > * 原作者 `Aspw-w` 与本项目**没有任何关系**，对其**不承担任何连带责任与义务**。你在 Night-OSS 中遇到的任何问题均为本项目自身的代码问题。请尊重原作者，切勿打扰原作者的清净。
 
-### General Disclaimer / 通用免责
+### Disclaimer / 免责声明
 This software is provided "as-is" for educational, research, and network-testing purposes only. The developers hold no responsibility for any account bans, game-play restrictions, or liabilities incurred on public servers. We do not condone the disruption of fair play.
 
 本项目所提供的代码仅供学习、网络协议研究与学术交流使用。用户在公共服务器中使用导致的一切封号、连带损失及法律责任，均由用户自行承担，本项目不承担任何责任。
