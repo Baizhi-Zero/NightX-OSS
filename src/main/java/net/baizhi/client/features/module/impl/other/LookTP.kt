@@ -1,0 +1,163 @@
+package net.baizhi.client.features.module.impl.other
+
+import net.baizhi.client.Launch
+import net.baizhi.client.event.EventTarget
+import net.baizhi.client.event.MoveEvent
+import net.baizhi.client.event.PacketEvent
+import net.baizhi.client.features.module.Module
+import net.baizhi.client.features.module.ModuleCategory
+import net.baizhi.client.features.module.ModuleInfo
+import net.baizhi.client.features.module.impl.visual.Interface
+import net.baizhi.client.utils.PacketUtils
+import net.baizhi.client.utils.pathfinder.MainPathFinder
+import net.baizhi.client.utils.pathfinder.Vec3
+import net.baizhi.client.utils.timer.MSTimer
+import net.baizhi.client.value.ListValue
+import net.minecraft.block.BlockAir
+import net.minecraft.network.play.client.C03PacketPlayer.C04PacketPlayerPosition
+import net.minecraft.network.play.server.S08PacketPlayerPosLook
+import org.lwjgl.input.Mouse
+import java.util.*
+
+@ModuleInfo(name = "LookTP", spacedName = "Look TP", category = ModuleCategory.OTHER)
+class LookTP : Module() {
+    private val modeValue = ListValue("Mode", arrayOf("Vanilla", "Flag"), "Vanilla")
+    private val buttonValue = ListValue("Button", arrayOf("Left", "Right", "Middle"), "Middle")
+    private var countTicks = false
+    private var startTeleport = false
+    private var tpX = 0.0
+    private var tpY = 0.0
+    private var tpZ = 0.0
+    private var tpChatX = 0.0
+    private var tpChatY = 0.0
+    private var tpChatZ = 0.0
+    private var ticks = 0
+    private val timer = MSTimer()
+
+    override val tag: String
+        get() = modeValue.get()
+
+    override fun onDisable() {
+        countTicks = false
+        ticks = 0
+        startTeleport = false
+        tpX = 0.0
+        tpY = 0.0
+        tpZ = 0.0
+        tpChatX = 0.0
+        tpChatY = 0.0
+        tpChatZ = 0.0
+    }
+
+    override fun onEnable() {
+        countTicks = false
+        ticks = 0
+        startTeleport = false
+    }
+
+    @EventTarget
+    fun onMove(event: MoveEvent) {
+        if (Mouse.isButtonDown(listOf(*buttonValue.values).indexOf(buttonValue.get())) && timer.hasTimePassed(
+                300L
+            )
+        ) {
+            val pos = mc.thePlayer.rayTrace(999.0, 1f).blockPos
+            val tpPos = pos.up()
+            if (mc.theWorld.getBlockState(pos).block is BlockAir || mc.theWorld.getBlockState(tpPos).block !is BlockAir) return
+            tpChatX = tpPos.x.toDouble()
+            tpChatY = tpPos.y.toDouble()
+            tpChatZ = tpPos.z.toDouble()
+            tpX = tpPos.x.toDouble() + 0.5
+            tpY = tpPos.y.toDouble()
+            tpZ = tpPos.z.toDouble() + 0.5
+            when (modeValue.get()) {
+                "Vanilla" -> {
+                    Thread {
+                        val path = MainPathFinder.computePath(
+                            Vec3(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ),
+                            Vec3(tpX, tpY, tpZ)
+                        )
+                        for (point in path) PacketUtils.sendPacketNoEvent(
+                            C04PacketPlayerPosition(
+                                point.x,
+                                point.y,
+                                point.z,
+                                true
+                            )
+                        )
+                        mc.thePlayer.setPosition(tpX, tpY, tpZ)
+                    }.start()
+                    chat("Successfully Teleported to X: $tpChatX, Y: $tpChatY, Z: $tpChatZ")
+                    if (Objects.requireNonNull(
+                            Launch.moduleManager.getModule(
+                                Interface::class.java
+                            )
+                        )?.flagSoundValue?.get()!!
+                    ) {
+                        Launch.tipSoundManager.popSound.asyncPlay(Launch.moduleManager.popSoundPower)
+                    }
+                }
+
+                "Flag" -> {
+                    startTeleport = true
+                    chat("Teleporting to X: $tpChatX, Y: $tpChatY, Z: $tpChatZ soon")
+                }
+            }
+            timer.reset()
+        }
+        if (startTeleport && modeValue.get() == "Flag") {
+            if (countTicks) ticks++
+            event.zero()
+            mc.thePlayer.setPosition(mc.thePlayer.posX, mc.thePlayer.posY - 0.1, mc.thePlayer.posZ)
+            if (countTicks && ticks == 1) {
+                Thread {
+                    val path = MainPathFinder.computePath(
+                        Vec3(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ),
+                        Vec3(tpX, tpY, tpZ)
+                    )
+                    for (point in path) PacketUtils.sendPacketNoEvent(
+                        C04PacketPlayerPosition(
+                            point.x,
+                            point.y,
+                            point.z,
+                            true
+                        )
+                    )
+                }.start()
+                PacketUtils.sendPacketNoEvent(C04PacketPlayerPosition(tpX, tpY, tpZ + 0.1, true))
+                PacketUtils.sendPacketNoEvent(C04PacketPlayerPosition(tpX, tpY, tpZ - 0.1, true))
+                chat("Successfully Teleported to X: $tpChatX, Y: $tpChatY, Z: $tpChatZ")
+                if (Objects.requireNonNull(
+                        Launch.moduleManager.getModule(
+                            Interface::class.java
+                        )
+                    )?.flagSoundValue?.get()!!
+                ) {
+                    Launch.tipSoundManager.popSound.asyncPlay(Launch.moduleManager.popSoundPower)
+                }
+                countTicks = false
+                ticks = 0
+                startTeleport = false
+            } else if (countTicks && ticks > 1) {
+                mc.thePlayer.setPosition(tpX, tpY + 1, tpZ)
+            }
+        }
+    }
+
+    @EventTarget
+    fun onPacket(event: PacketEvent) {
+        if (modeValue.get() == "Flag") {
+            if (startTeleport && event.packet is S08PacketPlayerPosLook && mc.thePlayer.ticksExisted > 20) {
+                val s08 = event.packet
+                if (mc.thePlayer.getDistanceSq(s08.getX(), s08.getY(), s08.getZ()) < 2 * 2) {
+                    event.cancelEvent()
+                    countTicks = true
+                } else {
+                    countTicks = false
+                    ticks = 0
+                    startTeleport = false
+                }
+            }
+        }
+    }
+}

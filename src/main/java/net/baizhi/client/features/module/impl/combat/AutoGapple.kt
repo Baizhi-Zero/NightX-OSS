@@ -1,0 +1,88 @@
+package net.baizhi.client.features.module.impl.combat
+
+import net.baizhi.client.event.EventTarget
+import net.baizhi.client.event.UpdateEvent
+import net.baizhi.client.features.module.Module
+import net.baizhi.client.features.module.ModuleCategory
+import net.baizhi.client.features.module.ModuleInfo
+import net.baizhi.client.utils.InventoryUtils
+import net.baizhi.client.utils.timer.MSTimer
+import net.baizhi.client.value.BoolValue
+import net.baizhi.client.value.FloatValue
+import net.baizhi.client.value.IntegerValue
+import net.baizhi.client.value.ListValue
+import net.minecraft.init.Items
+import net.minecraft.network.play.client.C03PacketPlayer
+import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement
+import net.minecraft.network.play.client.C09PacketHeldItemChange
+import java.util.*
+
+@ModuleInfo(name = "AutoGapple", spacedName = "Auto Gapple", category = ModuleCategory.COMBAT)
+class AutoGapple : Module() {
+
+    val modeValue = ListValue("Mode", arrayOf("Auto", "Once", "Head"), "Auto")
+
+    @JvmField
+    var isEating = false
+    private val healthValue = FloatValue("Health", 10F, 1F, 20F)
+    private val delayValue = IntegerValue("Delay", 150, 0, 1000, "ms")
+    private val noAbsorption = BoolValue("NoAbsorption", true)
+    private val timer = MSTimer()
+
+    @EventTarget
+    fun onUpdate(event: UpdateEvent?) {
+        when (modeValue.get().lowercase(Locale.getDefault())) {
+            "once" -> {
+                doEat(true)
+                state = false
+            }
+
+            "auto" -> {
+                if (!timer.hasTimePassed(delayValue.get().toLong()))
+                    return
+                if (mc.thePlayer.health <= healthValue.get()) {
+                    doEat(false)
+                    timer.reset()
+                }
+            }
+
+            "head" -> {
+                if (!timer.hasTimePassed(delayValue.get().toLong()))
+                    return
+                if (mc.thePlayer.health <= healthValue.get()) {
+                    val headInHotbar = InventoryUtils.findItem(36, 45, Items.skull)
+                    if (headInHotbar != -1) {
+                        mc.netHandler.addToSendQueue(C09PacketHeldItemChange(headInHotbar - 36))
+                        mc.netHandler.addToSendQueue(C08PacketPlayerBlockPlacement(mc.thePlayer.heldItem))
+                        mc.netHandler.addToSendQueue(C09PacketHeldItemChange(mc.thePlayer.inventory.currentItem))
+                        timer.reset()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun doEat(warn: Boolean) {
+        if (noAbsorption.get() && !warn) {
+            val abAmount = mc.thePlayer.absorptionAmount
+            if (abAmount > 0)
+                return
+        }
+
+        val gappleInHotbar = InventoryUtils.findItem(36, 45, Items.golden_apple)
+        if (gappleInHotbar != -1) {
+            mc.netHandler.addToSendQueue(C09PacketHeldItemChange(gappleInHotbar - 36))
+            mc.netHandler.addToSendQueue(C08PacketPlayerBlockPlacement(mc.thePlayer.heldItem))
+            isEating = true
+            repeat(35) {
+                mc.netHandler.addToSendQueue(C03PacketPlayer(mc.thePlayer.onGround))
+            }
+            isEating = false
+            mc.netHandler.addToSendQueue(C09PacketHeldItemChange(mc.thePlayer.inventory.currentItem))
+        } else if (warn)
+            chat("No gapple were found in hotbar")
+    }
+
+    override val tag: String
+        get() = modeValue.get()
+}

@@ -1,6 +1,6 @@
 {
   "required": true,
-  "package": "net.aspw.client.injection.forge.mixins",
+  "package": "net.baizhi.client.injection.forge.mixins",
   "refmap": "client.mixins.refmap.json",
   "compatibilityLevel": "JAVA_8",
   "minVersion": "0.7.11",

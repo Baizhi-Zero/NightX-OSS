@@ -1,0 +1,152 @@
+package net.baizhi.client.features.module.impl.player
+
+import net.baizhi.client.Launch
+import net.baizhi.client.event.*
+import net.baizhi.client.features.module.Module
+import net.baizhi.client.features.module.ModuleCategory
+import net.baizhi.client.features.module.ModuleInfo
+import net.baizhi.client.features.module.impl.visual.SilentRotations
+import net.baizhi.client.utils.PacketUtils
+import net.baizhi.client.utils.RotationUtils
+import net.baizhi.client.utils.block.BlockUtils
+import net.baizhi.client.utils.render.RenderUtils
+import net.baizhi.client.value.BoolValue
+import net.baizhi.client.value.FloatValue
+import net.baizhi.client.value.IntegerValue
+import net.baizhi.client.value.ListValue
+import net.minecraft.block.BlockAir
+import net.minecraft.network.play.client.C07PacketPlayerDigging
+import net.minecraft.network.play.client.C0APacketAnimation
+import net.minecraft.util.BlockPos
+import net.minecraft.util.EnumFacing
+import java.awt.Color
+import java.util.*
+
+@ModuleInfo(name = "CivBreak", spacedName = "Civ Break", category = ModuleCategory.PLAYER)
+class CivBreak : Module() {
+
+    private var blockPos: BlockPos? = null
+    private var enumFacing: EnumFacing? = null
+    private var isBreaking = false
+
+    private val modeValue = ListValue("Mode", arrayOf("Instant", "Legit"), "Instant")
+    private val delayValue = IntegerValue("Instant-Delay", 1, 1, 20) { modeValue.get().equals("instant", true) }
+    private val range = FloatValue("Range", 5F, 1F, 6F)
+    private val rotationsValue = BoolValue("Rotations", true)
+    private val swingValue = ListValue("Swing", arrayOf("Normal", "Packet", "None"), "Packet")
+    private val airResetValue = BoolValue("Air-Reset", false)
+    private val rangeResetValue = BoolValue("Range-Reset", false)
+    private val redValue = IntegerValue("R", 255, 0, 255)
+    private val greenValue = IntegerValue("G", 255, 0, 255)
+    private val blueValue = IntegerValue("B", 255, 0, 255)
+    private val outLine = BoolValue("Outline", true)
+
+    override val tag: String
+        get() = modeValue.get()
+
+    @EventTarget
+    fun onBlockClick(event: ClickBlockEvent) {
+        blockPos = event.clickedBlock
+        enumFacing = event.enumFacing
+    }
+
+    override fun onDisable() {
+        blockPos ?: return
+        blockPos = null
+        isBreaking = false
+    }
+
+    @EventTarget
+    fun onJump(event: JumpEvent) {
+        if (blockPos != null && rotationsValue.get() && Launch.moduleManager.getModule(
+                SilentRotations::class.java
+            )?.state!! && Launch.moduleManager.getModule(SilentRotations::class.java)?.customStrafe?.get()!!
+        )
+            event.yaw = RotationUtils.cameraYaw
+    }
+
+    @EventTarget
+    fun onStrafe(event: StrafeEvent) {
+        if (blockPos != null && rotationsValue.get() && Launch.moduleManager.getModule(
+                SilentRotations::class.java
+            )?.state!! && Launch.moduleManager.getModule(SilentRotations::class.java)?.customStrafe?.get()!!
+        )
+            event.yaw = RotationUtils.cameraYaw
+    }
+
+    @EventTarget
+    fun onUpdate(event: UpdateEvent) {
+        if (blockPos !== null) {
+            if (modeValue.get().equals("legit", true)) {
+                mc.playerController.onPlayerDamageBlock(blockPos, enumFacing)
+                when (swingValue.get().lowercase(Locale.getDefault())) {
+                    "normal" -> mc.thePlayer.swingItem()
+                    "packet" -> mc.netHandler.addToSendQueue(C0APacketAnimation())
+                }
+            }
+        }
+    }
+
+    @EventTarget
+    fun onMotion(event: MotionEvent) {
+        val pos = blockPos ?: return
+
+        if (airResetValue.get() && BlockUtils.getBlock(pos) is BlockAir ||
+            rangeResetValue.get() && BlockUtils.getCenterDistance(pos) > range.get()
+        ) {
+            blockPos = null
+            isBreaking = false
+            return
+        }
+
+        if (BlockUtils.getBlock(pos) is BlockAir || BlockUtils.getCenterDistance(pos) > range.get()) {
+            isBreaking = false
+            return
+        }
+
+        if (blockPos !== null) {
+            isBreaking = true
+        }
+
+        if (blockPos == null) {
+            isBreaking = false
+        }
+
+        when (event.eventState) {
+            EventState.PRE -> {
+                if (rotationsValue.get()) {
+                    RotationUtils.setTargetRotation(RotationUtils.faceBlock(pos)?.rotation!!)
+                }
+            }
+
+            EventState.POST -> {
+                if (modeValue.get().equals("instant", true)) {
+                    if (mc.thePlayer.ticksExisted % delayValue.get() == 0) {
+                        when (swingValue.get().lowercase(Locale.getDefault())) {
+                            "normal" -> mc.thePlayer.swingItem()
+                            "packet" -> mc.netHandler.addToSendQueue(C0APacketAnimation())
+                        }
+                        repeat(2) {
+                            PacketUtils.sendPacketNoEvent(
+                                C07PacketPlayerDigging(
+                                    C07PacketPlayerDigging.Action.STOP_DESTROY_BLOCK,
+                                    blockPos,
+                                    enumFacing
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @EventTarget
+    fun onRender3D(event: Render3DEvent) {
+        RenderUtils.drawBlockBox(
+            blockPos ?: return,
+            Color(redValue.get(), greenValue.get(), blueValue.get()),
+            outLine.get()
+        )
+    }
+}

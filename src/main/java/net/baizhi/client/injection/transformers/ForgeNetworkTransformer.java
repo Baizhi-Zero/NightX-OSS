@@ -1,0 +1,63 @@
+package net.baizhi.client.injection.transformers;
+
+import net.baizhi.client.Launch;
+import net.baizhi.client.features.module.impl.other.BrandSpoofer;
+import net.baizhi.client.utils.ClassUtils;
+import net.baizhi.client.utils.MinecraftInstance;
+import net.baizhi.client.utils.NodeUtils;
+import net.minecraft.launchwrapper.IClassTransformer;
+import org.objectweb.asm.tree.*;
+
+import java.util.Objects;
+
+import static org.objectweb.asm.Opcodes.*;
+
+public class ForgeNetworkTransformer implements IClassTransformer {
+
+    @Override
+    public byte[] transform(String name, String transformedName, byte[] basicClass) {
+        if (name.equals("net.minecraftforge.fml.common.network.handshake.NetworkDispatcher")) {
+            final ClassNode classNode = ClassUtils.INSTANCE.toClassNode(basicClass);
+
+            classNode.methods.stream().filter(methodNode -> methodNode.name.equals("handleVanilla")).forEach(methodNode -> {
+                final LabelNode labelNode = new LabelNode();
+
+                methodNode.instructions.insertBefore(methodNode.instructions.getFirst(), NodeUtils.INSTANCE.toNodes(
+                        new MethodInsnNode(INVOKESTATIC, "net/baizhi/client/injection/transformers/ForgeNetworkTransformer", "returnMethod", "()Z", false),
+                        new JumpInsnNode(IFEQ, labelNode),
+                        new InsnNode(ICONST_0),
+                        new InsnNode(IRETURN),
+                        labelNode
+                ));
+            });
+
+            return ClassUtils.INSTANCE.toBytes(classNode);
+        }
+
+        if (name.equals("net.minecraftforge.fml.common.network.handshake.HandshakeMessageHandler")) {
+            final ClassNode classNode = ClassUtils.INSTANCE.toClassNode(basicClass);
+
+            classNode.methods.stream().filter(method -> method.name.equals("channelRead0")).forEach(methodNode -> {
+                final LabelNode labelNode = new LabelNode();
+
+                methodNode.instructions.insertBefore(methodNode.instructions.getFirst(), NodeUtils.INSTANCE.toNodes(
+                        new MethodInsnNode(INVOKESTATIC,
+                                "net/baizhi/client/injection/transformers/ForgeNetworkTransformer",
+                                "returnMethod", "()Z", false
+                        ),
+                        new JumpInsnNode(IFEQ, labelNode),
+                        new InsnNode(RETURN),
+                        labelNode
+                ));
+            });
+
+            return ClassUtils.INSTANCE.toBytes(classNode);
+        }
+
+        return basicClass;
+    }
+
+    public static boolean returnMethod() {
+        return Objects.requireNonNull(Launch.moduleManager.getModule(BrandSpoofer.class)).getState() && !MinecraftInstance.mc.isIntegratedServerRunning();
+    }
+}
