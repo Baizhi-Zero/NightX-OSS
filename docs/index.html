@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NightX-OSS | Minecraft 1.8.9 Open-Source Continuation</title>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --panel-bg: rgba(6, 6, 8, 0.85);
+            --neon-blue: #00f0ff;
+            --neon-purple: #7000ff;
+            --text-main: #ffffff;
+            --text-muted: #8f9cae;
+            --accent-glow: drop-shadow(0 0 15px rgba(0, 240, 255, 0.6)) drop-shadow(0 0 30px rgba(112, 0, 255, 0.4));
+            --border-glow: 0 0 10px rgba(0, 240, 255, 0.2);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'SF Pro Display', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            overflow-x: hidden;
+            padding: 40px 20px;
+        }
+
+      
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 240, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 240, 255, 0.02) 1px, transparent 1px);
+            background-size: 30px 30px;
+            background-position: center;
+            z-index: -1;
+        }
+
+        /* Core Visual: The Futuristic X */
+        .logo-container {
+            margin-top: 20px;
+            margin-bottom: 10px;
+            position: relative;
+            width: 220px;
+            height: 220px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cyber-x {
+            width: 100%;
+            height: 100%;
+            filter: var(--accent-glow);
+            animation: pulseGlow 4s infinite ease-in-out;
+        }
+
+        .brand-text {
+            position: absolute;
+            bottom: 20px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.75rem;
+            font-weight: 900;
+            letter-spacing: 5px;
+            color: #ffffff;
+            text-shadow: 0 0 8px var(--neon-blue);
+            text-transform: uppercase;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 2px 6px;
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            border-radius: 2px;
+        }
+
+        .project-title {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 2.2rem;
+            font-weight: bold;
+            letter-spacing: 4px;
+            text-align: center;
+            margin-top: 10px;
+            background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .project-tagline {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 8px;
+            margin-bottom: 35px;
+            letter-spacing: 1px;
+            text-align: center;
+        }
+
+        /* Tactical Button Group (Main Options) */
+        .nav-container {
+            display: flex;
+            gap: 15px;
+            max-width: 700px;
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+
+        .cyber-btn {
+            background: transparent;
+            border: 1px solid rgba(0, 240, 255, 0.4);
+            color: var(--text-main);
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.85rem;
+            font-weight: bold;
+            padding: 12px 24px;
+            cursor: pointer;
+            letter-spacing: 2px;
+            position: relative;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 10px rgba(0, 240, 255, 0.05);
+        }
+
+        .cyber-btn::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 4px;
+            background: var(--neon-blue);
+        }
+
+        .cyber-btn::after {
+            content: "";
+            position: absolute;
+            bottom: 0; right: 0; width: 4px; height: 4px;
+            background: var(--neon-purple);
+        }
+
+        .cyber-btn:hover, .cyber-btn.active {
+            border-color: var(--neon-blue);
+            background: rgba(0, 240, 255, 0.1);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.2), inset 0 0 15px rgba(0, 240, 255, 0.1);
+            text-shadow: 0 0 5px var(--neon-blue);
+        }
+
+        .cyber-btn.active {
+            border-color: var(--neon-purple);
+            background: rgba(112, 0, 255, 0.15);
+            box-shadow: 0 0 15px rgba(112, 0, 255, 0.2);
+            text-shadow: 0 0 5px var(--neon-purple);
+        }
+
+        /* Interactive Content Panel */
+        .content-panel {
+            max-width: 650px;
+            width: 100%;
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-left: 2px solid var(--neon-blue);
+            padding: 30px;
+            position: relative;
+            backdrop-filter: blur(10px);
+            display: none;
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        .content-panel.active-panel {
+            display: block;
+        }
+
+        .panel-header {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.1rem;
+            color: var(--neon-blue);
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+            border-bottom: 1px solid rgba(0, 240, 255, 0.1);
+            padding-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-block {
+            margin-bottom: 20px;
+        }
+
+        .info-block:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-block h3 {
+            font-size: 0.95rem;
+            color: #ffffff;
+            margin-bottom: 8px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .info-block p {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 6px;
+            user-select: text;
+        }
+
+        /* Credits list styling */
+        .credits-list {
+            list-style: none;
+        }
+
+        .credits-item {
+            background: rgba(255, 255, 255, 0.02);
+                      border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+
+        .credits-item a {
+            color: var(--neon-blue);
+            text-decoration: none;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .credits-item a:hover {
+            text-decoration: underline;
+        }
+
+        .credits-item p {
+            margin-top: 4px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Warning/Disclaimer Box */
+        .warning-box {
+            background: rgba(255, 71, 87, 0.05);
+            border: 1px solid rgba(255, 71, 87, 0.2);
+            border-left: 3px solid #ff4757;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 2px;
+        }
+
+        .warning-box h4 {
+            color: #ff4757;
+            font-size: 0.9rem;
+            font-family: 'Courier New', Courier, monospace;
+            margin-bottom: 6px;
+        }
+
+        .warning-box p {
+            color: #ffa5a5;
+            font-size: 0.82rem;
+            line-height: 1.5;
+            user-select: text;
+        }
+
+        /* Animations */
+        @keyframes pulseGlow {
+            0%, 100% {
+                filter: drop-shadow(0 0 12px rgba(0, 240, 255, 0.5)) drop-shadow(0 0 25px rgba(112, 0, 255, 0.3));
+                transform: scale(1);
+            }
+            50% {
+                filter: drop-shadow(0 0 20px rgba(0, 240, 255, 0.8)) drop-shadow(0 0 40px rgba(112, 0, 255, 0.6));
+                transform: scale(1.02);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive Layout */
+        @media (max-width: 600px) {
+            .nav-container {
+                flex-direction: column;
+                align-items: stretch;
+                width: 100%;
+                padding: 0 10px;
+            }
+            .cyber-btn {
+                width: 100%;
+            }
+            .project-title {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sharp Sci-Fi Logo Section -->
+    <div class="logo-container">
+        <svg class="cyber-x" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="cyberGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#00f0ff" />
+                    <stop offset="45%" stop-color="#3b59ff" />
+                    <stop offset="100%" stop-color="#7000ff" />
+                </linearGradient>
+            </defs>
+            <!-- Sharp Left Blade of X -->
+            <path d="M15 10 H32 L53 47 L43 65 L15 10 Z" fill="url(#cyberGradient)" />
+            <path d="M47 53 L57 35 L85 90 H68 L47 53 Z" fill="url(#cyberGradient)" />
+            <!-- Sharp Right Blade of X -->
+            <path d="M85 10 H68 L47 47 L57 65 L85 10 Z" fill="url(#cyberGradient)" />
+            <path d="M15 90 H32 L53 53 L43 35 L15 90 Z" fill="url(#cyberGradient)" />
+            <!-- Cyber Tactical Intersecting Accents -->
+            <line x1="10" y1="50" x2="25" y2="50" stroke="#00f0ff" stroke-width="1.5" />
+            <line x1="75" y1="50" x2="90" y2="50" stroke="#7000ff" stroke-width="1.5" />
+        </svg>
+        <div class="brand-text">NIGHTX-OSS</div>
+    </div>
+
+    <!-- Navigation Options -->
+    <div class="nav-container">
+        <a href="https://github.com/Baizhi-Zero/NightX-OSS" target="_blank" class="cyber-btn">[ 🌐 GITHUB ]</a>
+        <button class="cyber-btn" onclick="togglePanel('intro')" id="btn-intro">[ 📄 PROJECT INFO ]</button>
+        <button class="cyber-btn" onclick="togglePanel('credits')" id="btn-credits">[ 🤝 CREDITS ]</button>
+        <button class="cyber-btn" onclick="togglePanel('disclaimer')" id="btn-disclaimer">[ 🛑 DISCLAIMER ]</button>
+        <a href="https://t.me/Love_Baizhi" target="_blank" class="cyber-btn">[ 💬 TELEGRAM ]</a>
+    </div>
+
+    <!-- Panel 1: Project Info -->
+    <div id="panel-intro" class="content-panel active-panel">
+        <div class="panel-header">> PROJECT OVERVIEW / 项目简介</div>
+        <div class="info-block">
+            <h3>📖 Introduction</h3>
+            <p>NightX-OSS is an open-source, passion-driven continuation project for Minecraft 1.8.9. A passionate tribute keeping the fire burning with new features and stability fixes.</p>
+            <p>NightX-OSS 是一个由纯粹热爱驱动的 Minecraft 1.8.9 开源延续项目，旨在延续经典的生命力，并为所钟爱的架构注入现代 Kotlin 的硬核动力。</p>
+        </div>
+        <div class="info-block">
+            <h3>🌟 Our Story & Motivation / 项目初衷</h3>
+            <p>我的故事始于作为 NightX-Client B45 的一名普通玩家。从第一次加载它开始，我就深深地爱上了这款客户端流畅的体验、独特的视觉设计与极佳的操控感。</p>
+            <p>在痴迷的驱动下，我深入探索了 1.8.9 开源社区底层生态，研究了 LiquidBounce、LiquidBounce+ 和 FDP Client 等先驱项目。看到发包层面开发的无限可能后，我决定将这份热爱付诸行动，衍生制作出了 NightX-OSS。</p>
+        </div>
+    </div>
+
+    <!-- Panel 2: Credits -->
+    <div id="panel-credits" class="content-panel">
+        <div class="panel-header">> CREDITS & SOURCES / 开源致敬</div>
+        <div class="info-block">
+            <p style="margin-bottom: 15px;">本项目深受开源社区的启发，严格标明以下核心代码与灵感来源：</p>
+            <ul class="credits-list">
+                <li class="credits-item">
+                    <a href="https://github.com/Aspw-w/NightX-Client" target="_blank">Aspw-w/NightX-Client</a>
+                    <p>本项目的精神源头与直接灵感来源 (The spiritual origin and direct inspiration).</p>
+                </li>
+                <li class="credits-item">
+                    <a href="https://github.com/CCBlueX/LiquidBounce" target="_blank">CCBlueX/LiquidBounce</a>
+                    <p>感谢其卓越的底层核心架构与工具类基石 (For exceptional core architecture).</p>
+                </li>
+                <li class="credits-item">
+                    <a href="https://github.com/SkidderMC/FDPClient" target="_blank">SkidderMC/FDPClient</a>
+                    <p>感谢其绕过思路与创新的功能实现 (For advanced bypass concepts).</p>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Panel 3: Disclaimer -->
+    <div id="panel-disclaimer" class="content-panel">
+        <div class="panel-header">> LEGAL DISCLAIMER / 免责声明</div>
+        
+        <div class="warning-box">
+            <h4>⚠️ STRICT DISCLAIMER / 与原作者完全无关</h4>
+            <p><strong>NightX-OSS 是一个完全【独立、非官方】的衍生开源项目。</strong></p>
+            <p style="margin-top: 5px;">在任何情况下，<strong>绝不得</strong>就本项目的代码、Bug、崩溃或使用问题，向原作者 (<code>Aspw-w</code>) 进行任何反馈或骚扰！原作者与本项目没有任何关系，对其不承担任何连带责任与义务。</p>
+        </div>
+
+        <div class="info-block">
+            <h3>🛑 Usage Disclaimer / 使用免责</h3>
+            <p>本项目所提供的代码仅供学习、网络协议研究与学术交流使用。用户在公共服务器中使用导致的一切封号、连带损失及法律责任，均由用户自行承担，本项目不承担任何责任。我们不赞成破坏公平游戏的行为。</p>
+        </div>
+
+        <div class="info-block">
+            <h3>📩 Copyright & Takedown / 版权处理</h3>
+                        <p>我极其尊重开源协议与原作者的知识产权。如果您认为本仓库中的任何内容或代码侵犯了您的合法权益，请立即通过邮箱联系我：<strong style="color:var(--neon-blue); user-select:text;">yuandiqian@gmail.com</strong></p>
+            <p style="margin-top: 4px; color: #ff4757;">一经收到并确认您的邮件，我会在第一时间处理并【彻底删除本仓库】，全力保障您的合法权益。</p>
+        </div>
+    </div>
+
+    <script>
+        function togglePanel(panelId) {
+            // Hide all panels
+            const panels = document.querySelectorAll('.content-panel');
+            panels.forEach(panel => panel.classList.remove('active-panel'));
+            
+            // Deactivate all button highlights
+            const buttons = document.querySelectorAll('.cyber-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+
+            // Show target panel
+            const targetPanel = document.getElementById('panel-' + panelId);
+            if (targetPanel) {
+                targetPanel.classList.add('active-panel');
+            }
+
+            // Highlight target button
+            const targetBtn = document.getElementById('btn-' + panelId);
+            if (targetBtn) {
+                targetBtn.classList.add('active');
+            }
+        }
+        
+        // Initialize default active button styling
+        document.getElementById('btn-intro').classList.add('active');
+    </script>
+</body>
+</html>
