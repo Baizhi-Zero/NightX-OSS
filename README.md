@@ -8,10 +8,6 @@
   一个由纯粹热爱驱动的 Minecraft 1.8.9 开源延续项目
 </p>
 
-<p align="center">
-  <code>Core: net.baizhi.client</code> • <code>Language: Kotlin & Java</code> • <code>Status: Active</code>
-</p>
-
 ---
 
 A passionate open-source tribute and continuation of Aspw-w/NightX-Client. Keeping the fire burning with new features and stability fixes.
