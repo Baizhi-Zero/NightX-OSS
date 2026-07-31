@@ -70,13 +70,13 @@ class AutoAuth : Module() {
             val message: String = messageOrigin.unformattedText
 
             if (message.contains("/login", true))
-                sendLogin("/login Aspw95639535".replace("%p", "Aspw95639535", true))
+                sendLogin("/login example123".replace("%p", "example123", true))
 
             if (message.contains("/register", true))
                 sendRegister(
-                    ("/register Aspw95639535" + if (doubleRegister.get()) " Aspw95639535" else "").replace(
+                    ("/register example123" + if (doubleRegister.get()) " example123" else "").replace(
                         "%p",
-                        "Aspw95639535",
+                        "example123",
                         true
                     )
                 )
@@ -86,13 +86,13 @@ class AutoAuth : Module() {
             val message: String = packet.chatComponent.unformattedText
 
             if (message.contains("/login", true))
-                sendLogin("/login Aspw95639535".replace("%p", "Aspw95639535", true))
+                sendLogin("/login example123".replace("%p", "example123", true))
 
             if (message.contains("/register", true))
                 sendRegister(
-                    ("/register Aspw95639535" + if (doubleRegister.get()) " Aspw95639535" else "").replace(
+                    ("/register example123" + if (doubleRegister.get()) " example123" else "").replace(
                         "%p",
-                        "Aspw95639535",
+                        "example123",
                         true
                     )
                 )

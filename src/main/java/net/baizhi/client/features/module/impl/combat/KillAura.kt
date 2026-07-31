@@ -14,10 +14,10 @@ import net.baizhi.client.features.module.impl.player.Scaffold
 import net.baizhi.client.features.module.impl.targets.AntiBots
 import net.baizhi.client.features.module.impl.targets.AntiTeams
 import net.baizhi.client.utils.*
+import net.baizhi.client.utils.AttackMode
+import net.baizhi.client.utils.PacketBufferHelper
 import net.baizhi.client.utils.extensions.getDistanceToEntityBox
 import net.baizhi.client.utils.extensions.getNearestPointBB
-import net.baizhi.client.utils.minecraft.GrimACUtil
-import net.baizhi.client.utils.minecraft.PredictionUtil
 import net.baizhi.client.utils.timer.MSTimer
 import net.baizhi.client.utils.timer.TickTimer
 import net.baizhi.client.utils.timer.TimeUtils
@@ -84,7 +84,7 @@ class KillAura : Module() {
         }
     }
 
-    val rotations = ListValue("RotationMode", arrayOf("Standard", "GrimAC", "Zero", "None"), "Standard")
+    val rotations = ListValue("RotationMode", arrayOf("Standard", "Zero", "None"), "Standard")
 
     private val maxTurnSpeed: FloatValue =
         object : FloatValue(
@@ -204,6 +204,12 @@ class KillAura : Module() {
     private val limitedMultiTargetsValue =
         IntegerValue("LimitedMultiTargets", 6, 1, 20) { targetModeValue.get().equals("multi", true) }
 
+    private val attackModeValue = ListValue(
+        "AttackMode",
+        arrayOf("Normal", "TickShift", "PacketBuffer"),
+        "Normal"
+    )
+
     var target: EntityLivingBase? = null
     var currentTarget: EntityLivingBase? = null
     private var hitable = false
@@ -239,8 +245,6 @@ class KillAura : Module() {
 
     @EventTarget
     fun onMotion(event: MotionEvent) {
-        GrimACUtil.tickDown()
-
         if (event.eventState == EventState.POST) {
             target ?: return
             currentTarget ?: return
@@ -559,22 +563,40 @@ class KillAura : Module() {
             }
         }
 
-        if (newAttackValue.get())
-            mc.netHandler.addToSendQueue(C02PacketUseEntity(entity, C02PacketUseEntity.Action.ATTACK))
-
-        when (swingValue.get().lowercase(Locale.getDefault())) {
-            "full" -> mc.thePlayer.swingItem()
-
-            "smart" -> {
-                mc.thePlayer.isSwingInProgress = true
-                mc.netHandler.addToSendQueue(C0APacketAnimation())
-            }
-
-            "packet" -> mc.netHandler.addToSendQueue(C0APacketAnimation())
+        val mode = when (attackModeValue.get().lowercase(Locale.getDefault())) {
+            "tickshift" -> AttackMode.TICK_SHIFT
+            "packetbuffer" -> AttackMode.PACKET_BUFFER
+            else -> AttackMode.NORMAL
         }
 
-        if (!newAttackValue.get())
-            mc.netHandler.addToSendQueue(C02PacketUseEntity(entity, C02PacketUseEntity.Action.ATTACK))
+        if (mode != AttackMode.NORMAL) {
+            PacketBufferHelper.executeAttack(entity, mode)
+            swingValue.get().lowercase(Locale.getDefault()).let {
+                if (it == "full") mc.thePlayer.swingItem()
+                else if (it == "packet") mc.netHandler.addToSendQueue(C0APacketAnimation())
+                else if (it == "smart") {
+                    mc.thePlayer.isSwingInProgress = true
+                    mc.netHandler.addToSendQueue(C0APacketAnimation())
+                }
+            }
+        } else {
+            if (newAttackValue.get())
+                mc.netHandler.addToSendQueue(C02PacketUseEntity(entity, C02PacketUseEntity.Action.ATTACK))
+
+            when (swingValue.get().lowercase(Locale.getDefault())) {
+                "full" -> mc.thePlayer.swingItem()
+
+                "smart" -> {
+                    mc.thePlayer.isSwingInProgress = true
+                    mc.netHandler.addToSendQueue(C0APacketAnimation())
+                }
+
+                "packet" -> mc.netHandler.addToSendQueue(C0APacketAnimation())
+            }
+
+            if (!newAttackValue.get())
+                mc.netHandler.addToSendQueue(C02PacketUseEntity(entity, C02PacketUseEntity.Action.ATTACK))
+        }
 
         when (particleValue.get().lowercase()) {
             "vanilla" -> {
@@ -606,23 +628,6 @@ class KillAura : Module() {
 
     private fun updateRotations(entity: Entity): Boolean {
         if (rotations.get().equals("none", true)) return true
-
-        if (rotations.get().equals("GrimAC", ignoreCase = true)) {
-            val predictedCenter = PredictionUtil.predictCenter(entity, 1)
-            val rawRot = RotationUtils.calculate(Vec3(
-                predictedCenter.xCoord,
-                predictedCenter.yCoord,
-                predictedCenter.zCoord
-            ))
-            val (yaw, pitch) = GrimACUtil.applyDynamicRotation(
-                RotationUtils.serverRotation?.yaw ?: mc.thePlayer.rotationYaw,
-                RotationUtils.serverRotation?.pitch ?: mc.thePlayer.rotationPitch,
-                rawRot.yaw, rawRot.pitch
-            )
-            val fixed = Rotation(yaw, pitch)
-            RotationUtils.setTargetRotation(fixed, 0)
-            return true
-        }
 
         val defRotation = getTargetRotation(entity) ?: return false
 

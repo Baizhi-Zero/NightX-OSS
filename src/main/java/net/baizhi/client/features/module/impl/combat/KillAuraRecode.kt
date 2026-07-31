@@ -12,13 +12,17 @@ import net.baizhi.client.features.module.impl.player.Blink
 import net.baizhi.client.features.module.impl.player.Freecam
 import net.baizhi.client.features.module.impl.player.LegitScaffold
 import net.baizhi.client.features.module.impl.player.Scaffold
+import net.baizhi.client.utils.AttackMode
 import net.baizhi.client.utils.CooldownHelper
 import net.baizhi.client.utils.EntityUtils
+import net.baizhi.client.utils.PacketBufferHelper
 import net.baizhi.client.utils.RotationUtils
 import net.baizhi.client.utils.timer.TimeUtils
 import net.baizhi.client.value.BoolValue
 import net.baizhi.client.value.FloatValue
 import net.baizhi.client.value.IntegerValue
+import net.baizhi.client.value.ListValue
+import java.util.*
 import net.minecraft.client.settings.KeyBinding
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.item.ItemSword
@@ -59,6 +63,12 @@ class KillAuraRecode : Module() {
     }
 
     private val fovValue = FloatValue("Fov", 180F, 0F, 180F, "掳")
+
+    private val attackModeValue = ListValue(
+        "AttackMode",
+        arrayOf("Normal", "TickShift", "PacketBuffer"),
+        "Normal"
+    )
 
     val modifiedReach = BoolValue("ModifiedReach", false)
     val rangeValue = FloatValue("Range", 7f, 3f, 7f, "m") { modifiedReach.get() }
@@ -152,7 +162,17 @@ class KillAuraRecode : Module() {
             if (coolDownCheck.get() && CooldownHelper.getAttackCooldownProgress() < 1f) return
 
             if (mc.thePlayer.getDistanceToEntity(lastTarget) <= (if (modifiedReach.get()) rangeValue.get() - 0.6f else 3.4f) && System.currentTimeMillis() - lastSwing >= delay) {
-                KeyBinding.onTick(mc.gameSettings.keyBindAttack.keyCode)
+                val mode = when (attackModeValue.get().lowercase(Locale.getDefault())) {
+                    "tickshift" -> AttackMode.TICK_SHIFT
+                    "packetbuffer" -> AttackMode.PACKET_BUFFER
+                    else -> AttackMode.NORMAL
+                }
+
+                if (mode != AttackMode.NORMAL) {
+                    PacketBufferHelper.executeAttack(it, mode)
+                } else {
+                    KeyBinding.onTick(mc.gameSettings.keyBindAttack.keyCode)
+                }
 
                 if (realAutoBlock.get()) {
                     blockTick += 1
