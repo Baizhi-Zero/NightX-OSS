@@ -36,14 +36,13 @@ public class FileManager extends MinecraftInstance {
     }
 
     public void setupFolder() {
-        if (!dir.exists())
-            dir.mkdir();
+        dir.mkdirs();
 
         if (!settingsDir.exists())
-            settingsDir.mkdir();
+            settingsDir.mkdirs();
 
         if (!soundsDir.exists())
-            soundsDir.mkdir();
+            soundsDir.mkdirs();
     }
 
     public void loadConfigs(final FileConfig... configs) {

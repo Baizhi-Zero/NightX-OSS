@@ -196,15 +196,27 @@ abstract class Module : MinecraftInstance(), Listenable {
 
 
 
+    private var cachedValues: List<Value<*>>? = null
+
+
+
     open val values: List<Value<*>>
 
-        get() = javaClass.declaredFields.map { valueField ->
+        get() = cachedValues ?: run {
 
-            valueField.isAccessible = true
+            val scanned = javaClass.declaredFields.map { valueField ->
 
-            valueField[this]
+                valueField.isAccessible = true
 
-        }.filterIsInstance<Value<*>>()
+                valueField[this]
+
+            }.filterIsInstance<Value<*>>()
+
+            cachedValues = scanned
+
+            scanned
+
+        }
 
 
 

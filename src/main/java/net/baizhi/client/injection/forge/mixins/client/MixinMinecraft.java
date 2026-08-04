@@ -34,31 +34,31 @@ import java.util.Objects;
 @Mixin(Minecraft.class)
 public abstract class MixinMinecraft {
 
-    @Shadow(aliases = {"field_71462_r", "m"})
+    @Shadow
     public GuiScreen currentScreen;
-    @Shadow(aliases = {"field_71454_w", "r"})
+    @Shadow
     public boolean skipRenderWorld;
-    @Shadow(aliases = {"field_71476_x", "s"})
+    @Shadow
     public MovingObjectPosition objectMouseOver;
-    @Shadow(aliases = {"field_71441_e", "f"})
+    @Shadow
     public WorldClient theWorld;
-    @Shadow(aliases = {"field_71439_g", "h"})
+    @Shadow
     public EntityPlayerSP thePlayer;
-    @Shadow(aliases = {"field_71460_t", "o"})
+    @Shadow
     public EntityRenderer entityRenderer;
-    @Shadow(aliases = {"field_71442_b", "c"})
+    @Shadow
     public PlayerControllerMP playerController;
-    @Shadow(aliases = {"field_71443_c", "d"})
+    @Shadow
     public int displayWidth;
-    @Shadow(aliases = {"field_71440_d", "e"})
+    @Shadow
     public int displayHeight;
-    @Shadow(aliases = {"field_71467_ac", "ap"})
+    @Shadow
     public int rightClickDelayTimer;
-    @Shadow(aliases = {"field_71474_y", "t"})
+    @Shadow
     public GameSettings gameSettings;
-    @Shadow(aliases = {"field_71431_Q", "T"})
+    @Shadow
     private boolean fullscreen;
-    @Shadow(aliases = {"field_71429_W", "ag"})
+    @Shadow
     public int leftClickCounter;
     private long lastFrame = Minecraft.getSystemTime();
 

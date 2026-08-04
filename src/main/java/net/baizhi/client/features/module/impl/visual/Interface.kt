@@ -44,8 +44,9 @@ import kotlin.math.pow
 
 @ModuleInfo(name = "Interface", category = ModuleCategory.VISUAL, array = false)
 class Interface : Module() {
+    private val healthFormat = DecimalFormat("##0.0", DecimalFormatSymbols(Locale.ENGLISH))
     private val watermarkValue = BoolValue("WaterMark", true)
-    private val clientNameValue = TextValue("ClientName", "NightX") { watermarkValue.get() }
+    private val clientNameValue = TextValue("ClientName", "NightX-OSS") { watermarkValue.get() }
     private val arrayListValue = BoolValue("ArrayList", true)
     private val arrayListBackGroundValue = BoolValue("ArrayList-BackGround", true)
     private val arrayListRectValue = BoolValue("ArrayList-Rect", true)
@@ -85,6 +86,10 @@ class Interface : Module() {
 
     @EventTarget
     fun onRender2D(event: Render2DEvent) {
+        val scaledResolution = ScaledResolution(mc)
+        val scaledWidth = scaledResolution.scaledWidth
+        val scaledHeight = scaledResolution.scaledHeight
+
         if (watermarkValue.get()) {
             val inputString = clientNameValue.get()
             var firstChar = ""
@@ -100,7 +105,6 @@ class Interface : Module() {
         }
 
         if (arrayListValue.get()) {
-            val counter = intArrayOf(0)
             val delta = RenderUtils.deltaTime
             var inx = 0
             for (module in sortedModules) {
@@ -134,12 +138,12 @@ class Interface : Module() {
                 }
             }
             val textY = 2
+            val colors = IntArray(modules.size) { index -> RenderUtils.skyRainbow(index * 50, 0.6f, 1f).rgb }
+            var prevWidth = 0
             modules.forEachIndexed { index, module ->
                 val displayString = getModName(module)
 
-                val xPos = ScaledResolution(mc).scaledWidth - module.slide - 2
-
-                counter[0] = counter[0] - 1
+                val xPos = scaledWidth - module.slide - 2
 
                 if (arrayListRectValue.get()) {
                     RenderUtils.drawGradientRect(
@@ -147,22 +151,18 @@ class Interface : Module() {
                         module.arrayY.toInt() + 11,
                         xPos.toInt() - 2,
                         (module.arrayY - textY).toInt() + 2,
-                        RenderUtils.skyRainbow(index * 50, 0.6f, 1f).rgb,
-                        RenderUtils.skyRainbow(index * 50, 0.6f, 1f).rgb
+                        colors[index],
+                        colors[index]
                     )
 
                     if (module != modules[0]) {
                         RenderUtils.drawGradientRect(
                             xPos.toInt() - 1,
                             module.arrayY.toInt(),
-                            xPos.toInt() - 2 - if (cFontValue.get()) (FontLoaders.SF20.getStringWidth(getModName(modules[index - 1])) - FontLoaders.SF20.getStringWidth(
-                                displayString
-                            )) else (Fonts.minecraftFont.getStringWidth(getModName(modules[index - 1])) - Fonts.minecraftFont.getStringWidth(
-                                displayString
-                            )),
+                            xPos.toInt() - 2 - (prevWidth - getDisplayWidth(displayString)),
                             module.arrayY.toInt() - 1,
-                            RenderUtils.skyRainbow(index * 50, 0.6f, 1f).rgb,
-                            RenderUtils.skyRainbow(index * 50, 0.6f, 1f).rgb
+                            colors[index],
+                            colors[index]
                         )
                         if (module == modules[modules.size - 1]) {
                             RenderUtils.drawGradientRect(
@@ -170,16 +170,16 @@ class Interface : Module() {
                                 module.arrayY.toInt() + 12,
                                 xPos.toInt() - 2,
                                 module.arrayY.toInt() + 11,
-                                RenderUtils.skyRainbow(index * 50, 0.6f, 1f).rgb,
-                                RenderUtils.skyRainbow(index * 50, 0.6f, 1f).rgb
+                                colors[index],
+                                colors[index]
                             )
                             RenderUtils.drawGradientRect(
-                                ScaledResolution(mc).scaledWidth,
+                                scaledWidth,
                                 module.arrayY.toInt() + 12,
                                 xPos.toInt() - 1,
                                 module.arrayY.toInt() + 11,
-                                RenderUtils.skyRainbow(index * 50, 0.6f, 1f).rgb,
-                                RenderUtils.skyRainbow(index * 50, 0.6f, 1f).rgb
+                                colors[index],
+                                colors[index]
                             )
                         }
                     }
@@ -187,7 +187,7 @@ class Interface : Module() {
 
                 if (arrayListBackGroundValue.get())
                     RenderUtils.drawGradientRect(
-                        ScaledResolution(mc).scaledWidth,
+                        scaledWidth,
                         module.arrayY.toInt() + 11,
                         xPos.toInt() - 1,
                         (module.arrayY - textY).toInt() + 2,
@@ -200,41 +200,32 @@ class Interface : Module() {
                         displayString,
                         xPos.toDouble(),
                         module.arrayY + textY.toDouble(),
-                        RenderUtils.skyRainbow(index * 50, 0.6f, 1f).rgb
+                        colors[index]
                     )
                 else Fonts.minecraftFont.drawStringWithShadow(
                     displayString,
                     xPos,
                     module.arrayY + textY,
-                    RenderUtils.skyRainbow(index * 50, 0.6f, 1f).rgb
+                    colors[index]
                 )
+
+                prevWidth = getDisplayWidth(displayString)
             }
             GlStateManager.resetColor()
-            modules = Launch.moduleManager.modules
-                .filter { it.array && it.slide > 0 }
-                .sortedBy {
-                    if (cFontValue.get()) -FontLoaders.SF20.getStringWidth(getModName(it)) else -Fonts.minecraftFont.getStringWidth(
-                        getModName(it)
-                    )
-                }
             sortedModules =
-                Launch.moduleManager.modules.sortedBy {
-                    if (cFontValue.get()) -FontLoaders.SF20.getStringWidth(
-                        getModName(it)
-                    ) else -Fonts.minecraftFont.getStringWidth(getModName(it))
-                }.toList()
+                Launch.moduleManager.modules.sortedBy { -getDisplayWidth(getModName(it)) }
+            modules = sortedModules.filter { it.array && it.slide > 0 }
         }
 
         if (targetHudValue.get()) {
-            val xPos = (ScaledResolution(mc).scaledWidth / 2) - 214f + targetHudXPosValue.get()
-            val yPos = (ScaledResolution(mc).scaledHeight / 2) - 90f + targetHudYPosValue.get()
+            val xPos = (scaledWidth / 2) - 214f + targetHudXPosValue.get()
+            val yPos = (scaledHeight / 2) - 90f + targetHudYPosValue.get()
             val killAura = Launch.moduleManager.getModule(KillAura::class.java)
             val tpAura = Launch.moduleManager.getModule(TPAura::class.java)
             val killAuraRecode = Launch.moduleManager.getModule(KillAuraRecode::class.java)
-            val decimalFormat = DecimalFormat("##0.0", DecimalFormatSymbols(Locale.ENGLISH))
             val entity =
                 if (killAura?.state!! && killAura.currentTarget != null) killAura.currentTarget!! else if (tpAura?.state!! && tpAura.lastTarget != null) tpAura.lastTarget!! else if (killAuraRecode?.state!! && killAuraRecode.lastTarget != null) killAuraRecode.lastTarget!! else mc.thePlayer!!
-            val healthString = decimalFormat.format(entity.health)
+            val healthString = healthFormat.format(entity.health)
 
             if (easingHealth < 0 || easingHealth > entity.maxHealth || abs(easingHealth - entity.health) < 0.01)
                 easingHealth = entity.health
@@ -354,42 +345,42 @@ class Interface : Module() {
         if (csgoCrosshairValue.get()) {
             val range = if (MovementUtils.isMoving()) 5 else 0
             RenderUtils.drawGradientRect(
-                ScaledResolution(mc).scaledWidth / 2 + 1,
-                ScaledResolution(mc).scaledHeight / 2 + 1,
-                ScaledResolution(mc).scaledWidth / 2,
-                ScaledResolution(mc).scaledHeight / 2,
+                scaledWidth / 2 + 1,
+                scaledHeight / 2 + 1,
+                scaledWidth / 2,
+                scaledHeight / 2,
                 Color(1f, 1f, 1f, 0.85f).rgb,
                 Color(1f, 1f, 1f, 0.85f).rgb
             )
             RenderUtils.drawGradientRect(
-                ScaledResolution(mc).scaledWidth / 2,
-                ScaledResolution(mc).scaledHeight / 2 - 8 - range,
-                ScaledResolution(mc).scaledWidth / 2 + 1,
-                ScaledResolution(mc).scaledHeight / 2 - 3 - range,
+                scaledWidth / 2,
+                scaledHeight / 2 - 8 - range,
+                scaledWidth / 2 + 1,
+                scaledHeight / 2 - 3 - range,
                 Color(1f, 1f, 1f, 0.85f).rgb,
                 Color(1f, 1f, 1f, 0.85f).rgb
             )
             RenderUtils.drawGradientRect(
-                ScaledResolution(mc).scaledWidth / 2,
-                ScaledResolution(mc).scaledHeight / 2 + 4 + range,
-                ScaledResolution(mc).scaledWidth / 2 + 1,
-                ScaledResolution(mc).scaledHeight / 2 + 9 + range,
+                scaledWidth / 2,
+                scaledHeight / 2 + 4 + range,
+                scaledWidth / 2 + 1,
+                scaledHeight / 2 + 9 + range,
                 Color(1f, 1f, 1f, 0.85f).rgb,
                 Color(1f, 1f, 1f, 0.85f).rgb
             )
             RenderUtils.drawGradientRect(
-                ScaledResolution(mc).scaledWidth / 2 + 9 + range,
-                ScaledResolution(mc).scaledHeight / 2 + 1,
-                ScaledResolution(mc).scaledWidth / 2 + 4 + range,
-                ScaledResolution(mc).scaledHeight / 2,
+                scaledWidth / 2 + 9 + range,
+                scaledHeight / 2 + 1,
+                scaledWidth / 2 + 4 + range,
+                scaledHeight / 2,
                 Color(1f, 1f, 1f, 0.85f).rgb,
                 Color(1f, 1f, 1f, 0.85f).rgb
             )
             RenderUtils.drawGradientRect(
-                ScaledResolution(mc).scaledWidth / 2 - 3 - range,
-                ScaledResolution(mc).scaledHeight / 2 + 1,
-                ScaledResolution(mc).scaledWidth / 2 - 8 - range,
-                ScaledResolution(mc).scaledHeight / 2,
+                scaledWidth / 2 - 3 - range,
+                scaledHeight / 2 + 1,
+                scaledWidth / 2 - 8 - range,
+                scaledHeight / 2,
                 Color(1f, 1f, 1f, 0.85f).rgb,
                 Color(1f, 1f, 1f, 0.85f).rgb
             )
@@ -458,6 +449,9 @@ class Interface : Module() {
     private fun getModName(mod: Module): String {
         return mod.spacedName + getModTag(mod)
     }
+
+    private fun getDisplayWidth(text: String): Int =
+        if (cFontValue.get()) FontLoaders.SF20.getStringWidth(text) else Fonts.minecraftFont.getStringWidth(text)
 
     private fun getModTag(m: Module): String {
         if (m.tag == null) return ""

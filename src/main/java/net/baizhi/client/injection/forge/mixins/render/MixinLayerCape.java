@@ -14,8 +14,6 @@ import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 import org.spongepowered.asm.mixin.*;
 
-import java.util.Objects;
-
 @Mixin(LayerCape.class)
 public class MixinLayerCape {
 
@@ -31,7 +29,14 @@ public class MixinLayerCape {
     @Overwrite
     public void doRenderLayer(final AbstractClientPlayer entitylivingbaseIn, final float p_177141_2_, final float p_177141_3_, final float partialTicks, final float p_177141_5_, final float p_177141_6_, final float p_177141_7_, final float scale) {
         ResourceLocation cape = APIConnecter.INSTANCE.loadCape(entitylivingbaseIn);
-        if ((entitylivingbaseIn.getLocationCape() != null || cape != null) && !entitylivingbaseIn.isInvisible() && entitylivingbaseIn.isWearing(EnumPlayerModelParts.CAPE) && (!Objects.requireNonNull(Launch.moduleManager.getModule(Freecam.class)).getState() || entitylivingbaseIn != Objects.requireNonNull(Launch.moduleManager.getModule(Freecam.class)).getFakePlayer()) && (!Objects.requireNonNull(Launch.moduleManager.getModule(ReverseFreecam.class)).getState() || entitylivingbaseIn != Objects.requireNonNull(Launch.moduleManager.getModule(ReverseFreecam.class)).getFakePlayer())) {
+        if ((entitylivingbaseIn.getLocationCape() != null || cape != null) && !entitylivingbaseIn.isInvisible() && entitylivingbaseIn.isWearing(EnumPlayerModelParts.CAPE)) {
+            final Freecam freecam = Launch.moduleManager.getModule(Freecam.class);
+            final ReverseFreecam reverseFreecam = Launch.moduleManager.getModule(ReverseFreecam.class);
+            if (freecam != null && freecam.getState() && entitylivingbaseIn == freecam.getFakePlayer())
+                return;
+            if (reverseFreecam != null && reverseFreecam.getState() && entitylivingbaseIn == reverseFreecam.getFakePlayer())
+                return;
+
             GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
             if (cape != null)
                 this.playerRenderer.bindTexture(cape);

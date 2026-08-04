@@ -131,6 +131,7 @@ class ModuleManager : Listenable {
             XRay::class.java,
             Cape::class.java,
             Gui::class.java,
+            ImGuiClickGui::class.java,
             VehicleJump::class.java,
             ConsoleSpammer::class.java,
             AntiSuffocation::class.java,

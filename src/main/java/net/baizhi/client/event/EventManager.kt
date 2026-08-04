@@ -1,5 +1,7 @@
 package net.baizhi.client.event
 
+import net.baizhi.client.utils.ClientUtils
+
 class EventManager {
 
     private val registry = hashMapOf<Class<out Event>, MutableList<EventHook>>()
@@ -38,11 +40,30 @@ class EventManager {
     fun callEvent(event: Event) {
         val targets = registry.get(event.javaClass) ?: return
 
-        targets.filter { it.eventClass.handleEvents() || it.isIgnoreCondition }.forEach {
+        for (hook in targets) {
+            if (!hook.eventClass.handleEvents() && !hook.isIgnoreCondition)
+                continue
+
             try {
-                it.method.invoke(it.eventClass, event)
-            } catch (_: Throwable) {
+                hook.method.invoke(hook.eventClass, event)
+            } catch (throwable: Throwable) {
+                ClientUtils.getLogger().error(
+                    "[EventManager] Failed to handle event ${event.javaClass.simpleName} in " +
+                        "${hook.eventClass.javaClass.simpleName}.${hook.method.name}",
+                    throwable
+                )
             }
         }
+    }
+
+    fun hasActiveHandlers(eventClass: Class<out Event>): Boolean {
+        val targets = registry[eventClass] ?: return false
+
+        for (hook in targets) {
+            if (hook.eventClass.handleEvents() || hook.isIgnoreCondition)
+                return true
+        }
+
+        return false
     }
 }

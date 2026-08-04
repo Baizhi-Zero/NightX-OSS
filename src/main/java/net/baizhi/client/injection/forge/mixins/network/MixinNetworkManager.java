@@ -29,9 +29,8 @@ public class MixinNetworkManager {
     @Overwrite
     protected void channelRead0(final ChannelHandlerContext p_channelRead0_1_, final Packet p_channelRead0_2_) {
         final PacketEvent event = new PacketEvent(p_channelRead0_2_);
-        final BackTrack backTrack = Launch.moduleManager.getModule(BackTrack.class);
-        assert backTrack != null;
-        if (backTrack.getState()) {
+        final BackTrack backTrack = getBackTrack();
+        if (backTrack != null && backTrack.getState()) {
             try {
                 backTrack.onPacket(event);
             } catch (final Exception ignored) {
@@ -54,9 +53,8 @@ public class MixinNetworkManager {
     private void send(final Packet<?> packet, final CallbackInfo callback) {
         if (PacketUtils.handleSendPacket(packet)) return;
         final PacketEvent event = new PacketEvent(packet);
-        final BackTrack backTrack = Launch.moduleManager.getModule(BackTrack.class);
-        assert backTrack != null;
-        if (backTrack.getState()) {
+        final BackTrack backTrack = getBackTrack();
+        if (backTrack != null && backTrack.getState()) {
             try {
                 backTrack.onPacket(event);
             } catch (final Exception ignored) {
@@ -66,5 +64,13 @@ public class MixinNetworkManager {
 
         if (event.isCancelled())
             callback.cancel();
+    }
+
+    private static BackTrack getBackTrack() {
+        try {
+            return Launch.INSTANCE.getModuleManager() == null ? null : Launch.INSTANCE.getModuleManager().getModule(BackTrack.class);
+        } catch (final Throwable t) {
+            return null;
+        }
     }
 }

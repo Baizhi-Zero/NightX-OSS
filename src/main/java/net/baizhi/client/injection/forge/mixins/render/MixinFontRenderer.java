@@ -30,7 +30,7 @@ public abstract class MixinFontRenderer {
     private String renderString(final String string) {
         if (string == null)
             return null;
-        if (Launch.eventManager == null)
+        if (Launch.eventManager == null || !Launch.eventManager.hasActiveHandlers(TextEvent.class))
             return string;
 
         final TextEvent textEvent = new TextEvent(string);
@@ -43,7 +43,7 @@ public abstract class MixinFontRenderer {
     private String getStringWidth(final String string) {
         if (string == null)
             return null;
-        if (Launch.eventManager == null)
+        if (Launch.eventManager == null || !Launch.eventManager.hasActiveHandlers(TextEvent.class))
             return string;
 
         final TextEvent textEvent = new TextEvent(string);

@@ -1,7 +1,6 @@
 package net.baizhi.client.visual.client
 
 import net.baizhi.client.Launch
-import net.baizhi.client.utils.APIConnecter
 import net.baizhi.client.utils.render.RenderUtils
 import net.baizhi.client.visual.client.altmanager.GuiAltManager
 import net.baizhi.client.visual.font.smooth.FontLoaders
@@ -129,95 +128,12 @@ class GuiMainMenu : GuiScreen(), GuiYesNoCallback {
         GlStateManager.enableAlpha()
         particles.forEach { it.update(deltaTime) }
         particles.forEach { it.render() }
-        val apiMessage = if (APIConnecter.canConnect) "§eOK" else "§cNo"
-        FontLoaders.SF20.drawStringWithShadow(
-            "API Connection: $apiMessage",
-            (this.width - 10F - FontLoaders.SF20.getStringWidth("API Connection: $apiMessage")).toDouble(),
-            32F.toDouble(),
-            -1
-        )
         FontLoaders.SF20.drawStringWithShadow(
             Launch.CLIENT_BEST + " Client",
             width - 4F - FontLoaders.SF20.getStringWidth(Launch.CLIENT_BEST + " Client").toDouble(),
             height - 23F.toDouble(),
             -1
         )
-        val uiMessage =
-            if (APIConnecter.canConnect && APIConnecter.isLatest) " §e(Latest)" else if (!APIConnecter.canConnect && APIConnecter.isLatest) " §c(API Dead)" else " §c(Outdated)"
-        FontLoaders.SF20.drawStringWithShadow(
-            "Your currently build is " + Launch.CLIENT_VERSION + uiMessage,
-            width - 4F - FontLoaders.SF20.getStringWidth("Your currently build is " + Launch.CLIENT_VERSION + uiMessage)
-                .toDouble(),
-            height - 12F.toDouble(),
-            -1
-        )
-        FontLoaders.SF21.drawStringWithShadow(
-            "Changelogs:",
-            3F.toDouble(),
-            4F.toDouble(),
-            -1
-        )
-        var changeY = 16
-        val changeDetails = APIConnecter.changelogs.split("\n")
-        for (i in changeDetails) {
-            if (i.startsWith("~ ")) {
-                FontLoaders.SF15.drawStringWithShadow(
-                    "§r $i".uppercase(),
-                    4F.toDouble(),
-                    changeY.toDouble(),
-                    -1
-                )
-            } else if (i.startsWith("+ ")) {
-                val clear = i.replace("+ ", "").trim()
-                FontLoaders.SF15.drawStringWithShadow(
-                    "§7[§a+§7]  §r$clear",
-                    4F.toDouble(),
-                    changeY.toDouble(),
-                    -1
-                )
-            } else if (i.startsWith("- ")) {
-                val clear = i.replace("- ", "").trim()
-                FontLoaders.SF15.drawStringWithShadow(
-                    "§7[§c-§7]  §r$clear",
-                    4F.toDouble(),
-                    changeY.toDouble(),
-                    -1
-                )
-            } else if (i.startsWith("* ")) {
-                val clear = i.replace("* ", "").trim()
-                FontLoaders.SF15.drawStringWithShadow(
-                    "§7[§e*§7]  §r$clear",
-                    4F.toDouble(),
-                    changeY.toDouble(),
-                    -1
-                )
-            } else {
-                FontLoaders.SF15.drawStringWithShadow(
-                    i,
-                    4F.toDouble(),
-                    changeY.toDouble(),
-                    -1
-                )
-            }
-            changeY += 8
-        }
-        FontLoaders.SF21.drawStringWithShadow(
-            "Known Bugs:",
-            (this.width - 10F - FontLoaders.SF21.getStringWidth("Known Bugs:")).toDouble(),
-            43F.toDouble(),
-            -1
-        )
-        var bugsY = 55
-        val bugDetails = APIConnecter.bugs.split("\n")
-        for (i in bugDetails) {
-            FontLoaders.SF15.drawStringWithShadow(
-                i,
-                (this.width - 12F - FontLoaders.SF15.getStringWidth(i)).toDouble(),
-                bugsY.toDouble(),
-                -1
-            )
-            bugsY += 11
-        }
         GlStateManager.disableAlpha()
         GlStateManager.enableAlpha()
         GL11.glPopMatrix()

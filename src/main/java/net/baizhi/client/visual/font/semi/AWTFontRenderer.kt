@@ -16,15 +16,16 @@ class AWTFontRenderer(val font: Font, startChar: Int = 0, stopChar: Int = 255) {
         var assumeNonVolatile: Boolean = false
         val activeFontRenderers: ArrayList<AWTFontRenderer> = ArrayList()
 
-        private var gcTicks: Int = 0
-        private const val GC_TICKS = 600
-        private const val CACHED_FONT_REMOVAL_TIME = 30000
+        private var lastGcTime = 0L
+        private const val CACHED_FONT_REMOVAL_TIME = 30000L
 
         fun garbageCollectionTick() {
-            if (gcTicks++ > GC_TICKS) {
-                activeFontRenderers.forEach { it.collectGarbage() }
+            val now = System.currentTimeMillis()
 
-                gcTicks = 0
+            if (now - lastGcTime >= CACHED_FONT_REMOVAL_TIME) {
+                lastGcTime = now
+
+                activeFontRenderers.forEach { it.collectGarbage() }
             }
         }
     }
@@ -32,12 +33,18 @@ class AWTFontRenderer(val font: Font, startChar: Int = 0, stopChar: Int = 255) {
     private fun collectGarbage() {
         val currentTime = System.currentTimeMillis()
 
-        cachedStrings.filter { currentTime - it.value.lastUsage > CACHED_FONT_REMOVAL_TIME }.forEach {
-            GL11.glDeleteLists(it.value.displayList, 1)
+        val iterator = cachedStrings.entries.iterator()
 
-            it.value.deleted = true
+        while (iterator.hasNext()) {
+            val (key, cached) = iterator.next()
 
-            cachedStrings.remove(it.key)
+            if (currentTime - cached.lastUsage > CACHED_FONT_REMOVAL_TIME) {
+                GL11.glDeleteLists(cached.displayList, 1)
+
+                cached.deleted = true
+
+                iterator.remove()
+            }
         }
     }
 

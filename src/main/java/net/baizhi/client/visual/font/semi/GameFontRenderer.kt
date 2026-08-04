@@ -102,11 +102,15 @@ class GameFontRenderer(font: Font) : FontRenderer(
 
 
 
-        val event = TextEvent(currentText)
+        if (Launch.eventManager.hasActiveHandlers(TextEvent::class.java)) {
 
-        Launch.eventManager.callEvent(event)
+            val event = TextEvent(currentText)
 
-        currentText = event.text ?: return 0
+            Launch.eventManager.callEvent(event)
+
+            currentText = event.text ?: return 0
+
+        }
 
 
 
@@ -366,11 +370,15 @@ class GameFontRenderer(font: Font) : FontRenderer(
 
 
 
-        val event = TextEvent(currentText)
+        if (Launch.eventManager.hasActiveHandlers(TextEvent::class.java)) {
 
-        Launch.eventManager.callEvent(event)
+            val event = TextEvent(currentText)
 
-        currentText = event.text ?: return 0
+            Launch.eventManager.callEvent(event)
+
+            currentText = event.text ?: return 0
+
+        }
 
 
 

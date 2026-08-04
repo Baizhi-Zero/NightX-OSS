@@ -31,8 +31,11 @@ public class ModulesConfig extends FileConfig {
             if (module != null) {
                 final JsonObject jsonModule = (JsonObject) entry.getValue();
 
-                module.setState(jsonModule.get("State").getAsBoolean());
-                module.setKeyBind(jsonModule.get("KeyBind").getAsInt());
+                if (jsonModule.has("State"))
+                    module.setState(jsonModule.get("State").getAsBoolean());
+
+                if (jsonModule.has("KeyBind"))
+                    module.setKeyBind(jsonModule.get("KeyBind").getAsInt());
 
                 if (jsonModule.has("Array"))
                     module.setArray(jsonModule.get("Array").getAsBoolean());

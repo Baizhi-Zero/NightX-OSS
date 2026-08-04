@@ -8,8 +8,6 @@ import net.baizhi.client.utils.NodeUtils;
 import net.minecraft.launchwrapper.IClassTransformer;
 import org.objectweb.asm.tree.*;
 
-import java.util.Objects;
-
 import static org.objectweb.asm.Opcodes.*;
 
 public class ForgeNetworkTransformer implements IClassTransformer {
@@ -58,6 +56,14 @@ public class ForgeNetworkTransformer implements IClassTransformer {
     }
 
     public static boolean returnMethod() {
-        return Objects.requireNonNull(Launch.moduleManager.getModule(BrandSpoofer.class)).getState() && !MinecraftInstance.mc.isIntegratedServerRunning();
+        try {
+            if (Launch.INSTANCE.getModuleManager() == null)
+                return false;
+
+            final net.baizhi.client.features.module.Module brandSpoofer = Launch.INSTANCE.getModuleManager().getModule(BrandSpoofer.class);
+            return brandSpoofer != null && brandSpoofer.getState() && !MinecraftInstance.mc.isIntegratedServerRunning();
+        } catch (Throwable t) {
+            return false;
+        }
     }
 }

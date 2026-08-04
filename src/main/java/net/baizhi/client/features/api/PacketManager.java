@@ -42,16 +42,35 @@ public class PacketManager extends MinecraftInstance implements Listenable {
     public static double routeZ;
     private final LinkedList<Vec3> routePositions = new LinkedList<>();
     private static final MSTimer routeTimer = new MSTimer();
+    private Thread routeThread = null;
+    private volatile boolean routeDirty = false;
 
     private void findPos(double targetX, double targetY, double targetZ) {
-        new Thread(() -> {
-            routePositions.clear();
-            ArrayList<Vec3> path = MainPathFinder.computePath(
-                    new Vec3(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ),
-                    new Vec3(targetX, targetY, targetZ)
-            );
-            routePositions.addAll(path);
-        }).start();
+        if (routeThread != null && routeThread.isAlive())
+            return;
+
+        routeDirty = true;
+
+        routeThread = new Thread(() -> {
+            try {
+                ArrayList<Vec3> path = MainPathFinder.computePath(
+                        new Vec3(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ),
+                        new Vec3(targetX, targetY, targetZ)
+                );
+
+                synchronized (routePositions) {
+                    routePositions.clear();
+                    routePositions.addAll(path);
+                }
+            } catch (Throwable t) {
+                routeDirty = false;
+            } finally {
+                routeDirty = false;
+            }
+        });
+        routeThread.setName("NightX-RouteFinder");
+        routeThread.setDaemon(true);
+        routeThread.start();
     }
 
     @EventTarget
@@ -60,8 +79,10 @@ public class PacketManager extends MinecraftInstance implements Listenable {
             RotationUtils.Companion.enableLook();
 
         isRouteTracking = false;
-        if (!routePositions.isEmpty())
-            routePositions.clear();
+        synchronized (routePositions) {
+            if (!routePositions.isEmpty())
+                routePositions.clear();
+        }
     }
 
     @EventTarget
@@ -73,13 +94,17 @@ public class PacketManager extends MinecraftInstance implements Listenable {
     @EventTarget
     public void onRender3D(Render3DEvent event) {
         if (isRouteTracking) {
-            if (routeTimer.hasTimePassed(500L)) {
+            if (routeTimer.hasTimePassed(500L) && !routeDirty) {
                 findPos(routeX, routeY, routeZ);
                 routeTimer.reset();
             }
-            RenderUtils.renderPathFinderLine(routePositions);
-        } else if (!routePositions.isEmpty())
-            routePositions.clear();
+            synchronized (routePositions) {
+                RenderUtils.renderPathFinderLine(routePositions);
+            }
+        } else synchronized (routePositions) {
+            if (!routePositions.isEmpty())
+                routePositions.clear();
+        }
 
         if (mc.gameSettings.keyBindAttack.isKeyDown() && mc.leftClickCounter == 0 && mc.theWorld.getBlockState(mc.objectMouseOver.getBlockPos()).getBlock().getMaterial() != Material.air)
             Launch.eventManager.callEvent(new ClickBlockEvent(mc.objectMouseOver.getBlockPos(), mc.objectMouseOver.sideHit));
