@@ -27,3 +27,16 @@ build
 run
 .DS_Store
 Thumbs.db
+
+# build artifacts
+release/
+*.zip
+*.jar
+ForgeGradle-*
+!gradle/wrapper/gradle-wrapper.jar
+
+# one-off maintenance scripts
+check_*.py
+fix_*.py
+find_*.py
+strip_comments.ps1

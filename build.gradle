@@ -88,6 +88,12 @@ dependencies {
         exclude module: "kotlin-stdlib"
         exclude module: "authlib"
     }
+
+    include "io.github.spair:imgui-java-binding:1.92.0"
+
+    // natives jar declares Java 17 in its POM metadata; referenced as a file
+    // dependency to bypass variant attribute matching (contains only the DLL)
+    include files("D:/opencode/其他/imgui-java-natives-windows-1.92.0.jar")
 }
 
 shadowJar {
@@ -154,7 +160,6 @@ jar {
 
 mixin {
     disableRefMapWarning = true
-    defaultObfuscationEnv searge
     add sourceSets.main, "client.mixins.refmap.json"
 }
 
@@ -178,5 +183,6 @@ publishing {
     }
 }
 
+tasks.reobfShadowJar.dependsOn shadowJar
 tasks.reobfShadowJar.mustRunAfter shadowJar
 tasks.reobfJar.dependsOn(shadowJar)
