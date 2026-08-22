@@ -153,7 +153,7 @@ class AntiVoid : Module() {
                                 )
                             )
                             mc.thePlayer.setPosition(lastX, lastY, lastZ)
-                        }.start()
+                        }.apply { isDaemon = true }.start()
 
                         "FlyFlag" -> mc.thePlayer.motionY = 0.0
 
@@ -260,7 +260,7 @@ class AntiVoid : Module() {
                                 )
                             )
                             mc.thePlayer.setPosition(lastX, lastY, lastZ)
-                        }.start()
+                        }.apply { isDaemon = true }.start()
 
                         "FlyFlag" -> mc.thePlayer.motionY = 0.0
 

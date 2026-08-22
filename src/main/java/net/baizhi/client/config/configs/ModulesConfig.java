@@ -5,6 +5,7 @@ import net.baizhi.client.Launch;
 import net.baizhi.client.config.FileConfig;
 import net.baizhi.client.config.FileManager;
 import net.baizhi.client.features.module.Module;
+import net.baizhi.client.utils.ClientUtils;
 
 import java.io.*;
 import java.util.Iterator;
@@ -31,14 +32,18 @@ public class ModulesConfig extends FileConfig {
             if (module != null) {
                 final JsonObject jsonModule = (JsonObject) entry.getValue();
 
-                if (jsonModule.has("State"))
-                    module.setState(jsonModule.get("State").getAsBoolean());
+                try {
+                    if (jsonModule.has("State"))
+                        module.setState(jsonModule.get("State").getAsBoolean());
 
-                if (jsonModule.has("KeyBind"))
-                    module.setKeyBind(jsonModule.get("KeyBind").getAsInt());
+                    if (jsonModule.has("KeyBind"))
+                        module.setKeyBind(jsonModule.get("KeyBind").getAsInt());
 
-                if (jsonModule.has("Array"))
-                    module.setArray(jsonModule.get("Array").getAsBoolean());
+                    if (jsonModule.has("Array"))
+                        module.setArray(jsonModule.get("Array").getAsBoolean());
+                } catch (final Throwable t) {
+                    ClientUtils.getLogger().error("[ModulesConfig] Failed to apply config for module " + entry.getKey() + ".", t);
+                }
             }
         }
     }

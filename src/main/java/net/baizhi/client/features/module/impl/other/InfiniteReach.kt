@@ -65,7 +65,7 @@ class InfiniteReach : Module() {
                         true
                     )
                 )
-            }.start()
+            }.apply { isDaemon = true }.start()
         }
 
         if (breakValue.get() && packet is C07PacketPlayerDigging) {
@@ -96,7 +96,7 @@ class InfiniteReach : Module() {
                             true
                         )
                     )
-                }.start()
+}.apply { isDaemon = true }.apply { isDaemon = true }.start()
             }
         }
 
@@ -127,7 +127,7 @@ class InfiniteReach : Module() {
                         true
                     )
                 )
-            }.start()
+            }.apply { isDaemon = true }.start()
         }
     }
 }

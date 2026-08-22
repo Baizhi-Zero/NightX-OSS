@@ -31,6 +31,12 @@ class GamePlay : Module() {
     private var queued = false
     private var waitForLobby = false
 
+    private val scheduler = Timer("NightX-GamePlay", true)
+
+    private fun scheduleOnce(delay: Long, action: () -> Unit) {
+        scheduler.schedule(delay) { action() }
+    }
+
     override fun onDisable() {
         clickState = 0
         clicking = false
@@ -87,7 +93,7 @@ class GamePlay : Module() {
                             ignoreCase = true
                         )
                     ) {
-                        Timer().schedule(500L) {
+                        scheduleOnce(500L) {
                             clicking = false
                             clickState = 0
                             mc.netHandler.addToSendQueue(C0EPacketClickWindow(windowId, slot, 0, 0, item, 1919))
@@ -134,7 +140,7 @@ class GamePlay : Module() {
                     if (clickState == 1 && text.contains("Only VIP players can join full servers!", true)) {
                         chat("Join failed! try again...")
 
-                        Timer().schedule(1500L) {
+                        scheduleOnce(1500L) {
                             mc.netHandler.addToSendQueue(C09PacketHeldItemChange(7))
                             repeat(2) {
                                 mc.netHandler.addToSendQueue(C08PacketPlayerBlockPlacement(mc.thePlayer.inventory.getCurrentItem()))
@@ -184,7 +190,7 @@ class GamePlay : Module() {
             return
         queued = true
         if (this.state) {
-            Timer().schedule(delay) {
+            scheduleOnce(delay) {
                 queued = false
                 if (state) {
                     runnable()

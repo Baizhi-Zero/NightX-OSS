@@ -45,16 +45,20 @@ import kotlin.math.pow
 @ModuleInfo(name = "Interface", category = ModuleCategory.VISUAL, array = false)
 class Interface : Module() {
     private val healthFormat = DecimalFormat("##0.0", DecimalFormatSymbols(Locale.ENGLISH))
-    private val watermarkValue = BoolValue("WaterMark", true)
+    val watermarkValue = BoolValue("WaterMark", true)
+    val watermarkXPosValue = FloatValue("WaterMark-XPos", 0F, -500F, 500F) { watermarkValue.get() }
+    val watermarkYPosValue = FloatValue("WaterMark-YPos", 0F, -500F, 500F) { watermarkValue.get() }
     private val clientNameValue = TextValue("ClientName", "NightX-OSS") { watermarkValue.get() }
-    private val arrayListValue = BoolValue("ArrayList", true)
+    val arrayListValue = BoolValue("ArrayList", true)
+    val arrayListXPosValue = FloatValue("ArrayList-XPos", 0F, -500F, 500F) { arrayListValue.get() }
+    val arrayListYPosValue = FloatValue("ArrayList-YPos", 0F, -500F, 500F) { arrayListValue.get() }
     private val arrayListBackGroundValue = BoolValue("ArrayList-BackGround", true)
     private val arrayListRectValue = BoolValue("ArrayList-Rect", true)
     private val arrayListSpeedValue = FloatValue("ArrayList-AnimationSpeed", 0.3F, 0F, 0.6F) { arrayListValue.get() }
-    private val targetHudValue = BoolValue("TargetHud", true)
+    val targetHudValue = BoolValue("TargetHud", true)
     private val targetHudSpeedValue = FloatValue("TargetHud-AnimationSpeed", 3F, 0F, 6F) { targetHudValue.get() }
-    private val targetHudXPosValue = FloatValue("TargetHud-XPos", 0F, -300F, 300F) { targetHudValue.get() }
-    private val targetHudYPosValue = FloatValue("TargetHud-YPos", 0F, -300F, 300F) { targetHudValue.get() }
+    val targetHudXPosValue = FloatValue("TargetHud-XPos", 0F, -300F, 300F) { targetHudValue.get() }
+    val targetHudYPosValue = FloatValue("TargetHud-YPos", 0F, -300F, 300F) { targetHudValue.get() }
     private val cFontValue = BoolValue("C-Font", true)
     val csgoCrosshairValue = BoolValue("CSGO-Crosshair", true)
     val scaffoldCounteValue = BoolValue("ScaffoldCounter", true)
@@ -73,7 +77,8 @@ class Interface : Module() {
     val chatRectValue = BoolValue("ChatRect", true)
     val chatAnimationValue = BoolValue("Chat-Animation", true)
     val chatAnimationSpeedValue = FloatValue("Chat-AnimationSpeed", 0.06F, 0.01F, 0.5F) { chatAnimationValue.get() }
-    private val toggleMessageValue = BoolValue("Toggle-Notification", false)
+    private val toggleMessageValue = BoolValue("Toggle-Notification", true)
+    val notificationStyleValue = ListValue("Notification-Style", arrayOf("Black", "White"), "Black")
     private val toggleSoundValue = ListValue("Toggle-Sound", arrayOf("None", "Default", "Custom"), "None")
     val flagSoundValue = BoolValue("Pop-Sound", true)
     val swingSoundValue = BoolValue("Swing-Sound", false)
@@ -100,8 +105,18 @@ class Interface : Module() {
             }
             val showName = "$firstChar§r§f$restOfString"
             if (cFontValue.get())
-                FontLoaders.SF20.drawStringWithShadow(showName, 2.0, 3.0, RenderUtils.skyRainbow(0, 0.5f, 1f).rgb)
-            else Fonts.minecraftFont.drawStringWithShadow(showName, 2.0f, 3.0f, RenderUtils.skyRainbow(0, 0.5f, 1f).rgb)
+                FontLoaders.SF20.drawStringWithShadow(
+                    showName,
+                    2.0 + watermarkXPosValue.get(),
+                    3.0 + watermarkYPosValue.get(),
+                    RenderUtils.skyRainbow(0, 0.5f, 1f).rgb
+                )
+            else Fonts.minecraftFont.drawStringWithShadow(
+                showName,
+                2.0f + watermarkXPosValue.get(),
+                3.0f + watermarkYPosValue.get(),
+                RenderUtils.skyRainbow(0, 0.5f, 1f).rgb
+            )
         }
 
         if (arrayListValue.get()) {
@@ -143,14 +158,15 @@ class Interface : Module() {
             modules.forEachIndexed { index, module ->
                 val displayString = getModName(module)
 
-                val xPos = scaledWidth - module.slide - 2
+                val xPos = scaledWidth - module.slide - 2 + arrayListXPosValue.get()
+                val arrayY = module.arrayY + arrayListYPosValue.get()
 
                 if (arrayListRectValue.get()) {
                     RenderUtils.drawGradientRect(
                         xPos.toInt() - 1,
-                        module.arrayY.toInt() + 11,
+                        arrayY.toInt() + 11,
                         xPos.toInt() - 2,
-                        (module.arrayY - textY).toInt() + 2,
+                        (arrayY - textY).toInt() + 2,
                         colors[index],
                         colors[index]
                     )
@@ -158,26 +174,26 @@ class Interface : Module() {
                     if (module != modules[0]) {
                         RenderUtils.drawGradientRect(
                             xPos.toInt() - 1,
-                            module.arrayY.toInt(),
+                            arrayY.toInt(),
                             xPos.toInt() - 2 - (prevWidth - getDisplayWidth(displayString)),
-                            module.arrayY.toInt() - 1,
+                            arrayY.toInt() - 1,
                             colors[index],
                             colors[index]
                         )
                         if (module == modules[modules.size - 1]) {
                             RenderUtils.drawGradientRect(
                                 xPos.toInt() - 1,
-                                module.arrayY.toInt() + 12,
+                                arrayY.toInt() + 12,
                                 xPos.toInt() - 2,
-                                module.arrayY.toInt() + 11,
+                                arrayY.toInt() + 11,
                                 colors[index],
                                 colors[index]
                             )
                             RenderUtils.drawGradientRect(
                                 scaledWidth,
-                                module.arrayY.toInt() + 12,
+                                arrayY.toInt() + 12,
                                 xPos.toInt() - 1,
-                                module.arrayY.toInt() + 11,
+                                arrayY.toInt() + 11,
                                 colors[index],
                                 colors[index]
                             )
@@ -188,9 +204,9 @@ class Interface : Module() {
                 if (arrayListBackGroundValue.get())
                     RenderUtils.drawGradientRect(
                         scaledWidth,
-                        module.arrayY.toInt() + 11,
+                        arrayY.toInt() + 11,
                         xPos.toInt() - 1,
-                        (module.arrayY - textY).toInt() + 2,
+                        (arrayY - textY).toInt() + 2,
                         Color(0, 0, 0, 120).rgb,
                         Color(0, 0, 0, 120).rgb
                     )
@@ -199,13 +215,13 @@ class Interface : Module() {
                     FontLoaders.SF20.drawStringWithShadow(
                         displayString,
                         xPos.toDouble(),
-                        module.arrayY + textY.toDouble(),
+                        arrayY + textY.toDouble(),
                         colors[index]
                     )
                 else Fonts.minecraftFont.drawStringWithShadow(
                     displayString,
                     xPos,
-                    module.arrayY + textY,
+                    arrayY + textY,
                     colors[index]
                 )
 

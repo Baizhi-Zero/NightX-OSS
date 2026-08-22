@@ -9,13 +9,15 @@ import net.minecraft.network.Packet;
 import net.minecraft.network.play.INetHandlerPlayServer;
 import net.minecraft.network.play.server.S32PacketConfirmTransaction;
 
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.ArrayList;
 
 public class PacketUtils extends MinecraftInstance implements Listenable {
 
     private static final MSTimer packetTimer = new MSTimer();
     private static final MSTimer wdTimer = new MSTimer();
-    public static ArrayList<Packet<?>> packets = new ArrayList<>();
+    public static Set<Packet<?>> packets = ConcurrentHashMap.newKeySet();
 
     public static int inBound,
 

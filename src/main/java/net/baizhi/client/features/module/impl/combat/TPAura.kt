@@ -72,7 +72,7 @@ class TPAura : Module() {
 
         try {
             if (thread == null || !thread!!.isAlive) {
-                thread = Thread { runAttack() }
+                thread = Thread { runAttack() }.apply { isDaemon = true }
                 thread!!.start()
                 clickTimer.reset()
             } else clickTimer.reset()

@@ -32,7 +32,7 @@ class DiscordRPC : MinecraftInstance() {
             ipcClient?.setListener(object : IPCListener {
 
                 override fun onReady(client: IPCClient?) {
-                    thread {
+                    thread(isDaemon = true) {
                         while (running) {
                             update()
 

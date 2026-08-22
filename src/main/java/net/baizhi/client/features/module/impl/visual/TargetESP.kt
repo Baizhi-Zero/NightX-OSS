@@ -32,9 +32,15 @@ class TargetESP : Module() {
     fun onRender3D(event: Render3DEvent) {
         if (targets.isEmpty()) return
 
-        for (target in targets) {
-            if (target?.isDead!!)
-                targets.remove(target)
+        val iterator = targets.iterator()
+
+        while (iterator.hasNext()) {
+            val target = iterator.next()
+
+            if (target == null || target.isDead) {
+                iterator.remove()
+                continue
+            }
 
             if (6 >= mc.thePlayer.getDistanceToEntity(target)) {
                 GL11.glPushMatrix()
@@ -85,7 +91,7 @@ class TargetESP : Module() {
 
                 GlStateManager.resetColor()
                 GL11.glColor4f(1F, 1F, 1F, 1F)
-            } else targets.remove(target)
+            } else iterator.remove()
         }
     }
 }

@@ -14,6 +14,8 @@ import net.baizhi.client.features.api.MacroManager
 
 import net.baizhi.client.features.api.PacketManager
 
+import net.baizhi.client.features.api.PerformanceMonitor
+
 import net.baizhi.client.features.api.PresetManager
 
 import net.baizhi.client.features.command.CommandManager
@@ -37,6 +39,8 @@ import net.baizhi.client.utils.misc.sound.TipSoundManager
 import net.baizhi.client.visual.client.clickgui.dropdown.ClickGui
 
 import net.baizhi.client.visual.font.semi.Fonts
+
+import net.baizhi.client.visual.notification.NotificationManager
 
 
 
@@ -108,6 +112,8 @@ object Launch {
 
         eventManager.registerListener(PacketManager())
 
+        eventManager.registerListener(PerformanceMonitor())
+
         eventManager.registerListener(PresetManager)
 
         eventManager.registerListener(InventoryUtils())
@@ -119,6 +125,8 @@ object Launch {
         eventManager.registerListener(SessionUtils())
 
         eventManager.registerListener(MacroManager)
+
+        eventManager.registerListener(NotificationManager)
 
 
 

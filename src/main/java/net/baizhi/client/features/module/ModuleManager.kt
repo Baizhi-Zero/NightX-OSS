@@ -21,7 +21,7 @@ class ModuleManager : Listenable {
     val modules = TreeSet<Module> { module1, module2 -> module1.name.compareTo(module2.name) }
     private val moduleClassMap = hashMapOf<Class<*>, Module>()
 
-    var shouldNotify: Boolean = false
+    var shouldNotify: Boolean = true
     var toggleSoundMode = 0
     var toggleVolume = 0F
     var popSoundPower = 90F
@@ -43,7 +43,7 @@ class ModuleManager : Listenable {
             KillAuraRecode::class.java,
             ArmorBreaker::class.java,
             PacketCriticals::class.java,
-            TickbaseShift::class.java,
+            Stasis::class.java,
             AutoBlock::class.java,
             AntiVelocity::class.java,
             Flight::class.java,
@@ -163,7 +163,8 @@ class ModuleManager : Listenable {
             ReverseFreecam::class.java,
             HiderESP::class.java,
             LegitVelocity::class.java,
-            PredictRender::class.java
+            PredictRender::class.java,
+            HudEditor::class.java
         )
 
         ClientUtils.getLogger().info("Successfully loaded modules")

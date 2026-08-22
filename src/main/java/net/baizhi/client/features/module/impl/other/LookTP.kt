@@ -86,7 +86,7 @@ class LookTP : Module() {
                             )
                         )
                         mc.thePlayer.setPosition(tpX, tpY, tpZ)
-                    }.start()
+                    }.apply { isDaemon = true }.start()
                     chat("Successfully Teleported to X: $tpChatX, Y: $tpChatY, Z: $tpChatZ")
                     if (Objects.requireNonNull(
                             Launch.moduleManager.getModule(
@@ -123,7 +123,7 @@ class LookTP : Module() {
                             true
                         )
                     )
-                }.start()
+                }.apply { isDaemon = true }.start()
                 PacketUtils.sendPacketNoEvent(C04PacketPlayerPosition(tpX, tpY, tpZ + 0.1, true))
                 PacketUtils.sendPacketNoEvent(C04PacketPlayerPosition(tpX, tpY, tpZ - 0.1, true))
                 chat("Successfully Teleported to X: $tpChatX, Y: $tpChatY, Z: $tpChatZ")

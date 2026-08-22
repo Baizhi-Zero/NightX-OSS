@@ -18,6 +18,7 @@ import net.baizhi.client.visual.font.smooth.FontLoaders;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.network.Packet;
+import net.minecraft.util.MovingObjectPosition;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -106,10 +107,12 @@ public class PacketManager extends MinecraftInstance implements Listenable {
                 routePositions.clear();
         }
 
-        if (mc.gameSettings.keyBindAttack.isKeyDown() && mc.leftClickCounter == 0 && mc.theWorld.getBlockState(mc.objectMouseOver.getBlockPos()).getBlock().getMaterial() != Material.air)
+        if (mc.thePlayer != null && mc.theWorld != null && mc.objectMouseOver != null && mc.objectMouseOver.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK
+                && mc.gameSettings.keyBindAttack.isKeyDown() && mc.leftClickCounter == 0 && mc.theWorld.getBlockState(mc.objectMouseOver.getBlockPos()).getBlock().getMaterial() != Material.air)
             Launch.eventManager.callEvent(new ClickBlockEvent(mc.objectMouseOver.getBlockPos(), mc.objectMouseOver.sideHit));
 
-        if (Objects.requireNonNull(Launch.moduleManager.getModule(SilentRotations.class)).getState()) {
+        final SilentRotations silentRotations = Launch.moduleManager.getModule(SilentRotations.class);
+        if (silentRotations != null && silentRotations.getState() && mc.thePlayer != null) {
             if (RotationUtils.targetRotation != null) {
                 mc.thePlayer.prevRenderArmYaw = RotationUtils.targetRotation.getYaw();
                 mc.thePlayer.prevRenderArmPitch = RotationUtils.targetRotation.getPitch();
@@ -173,9 +176,9 @@ public class PacketManager extends MinecraftInstance implements Listenable {
     public void onPacket(PacketEvent event) {
         final Packet<?> packet = event.getPacket();
 
-        if (packet.toString().startsWith("net.minecraft.network.play.client.C"))
+        if (packet.getClass().getSimpleName().startsWith("C"))
             preSend++;
-        if (packet.toString().startsWith("net.minecraft.network.play.server.S"))
+        if (packet.getClass().getSimpleName().startsWith("S"))
             preReceive++;
 
         if (packetCountTimer.hasTimePassed(1000L)) {

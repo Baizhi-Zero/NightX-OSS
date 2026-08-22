@@ -76,6 +76,7 @@ abstract class Module : MinecraftInstance(), Listenable {
 
 
 
+    @Volatile
     var state = false
 
         set(value) {

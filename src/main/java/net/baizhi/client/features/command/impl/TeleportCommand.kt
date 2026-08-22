@@ -82,7 +82,7 @@ class TeleportCommand : Command("tp", arrayOf("teleport")) {
 
                     mc.thePlayer.setPosition(targetPlayer.posX, targetPlayer.posY, targetPlayer.posZ)
 
-                }.start()
+                }.apply { isDaemon = true }.start()
 
                 chat("Successfully teleported to §a${targetPlayer.name}")
 
@@ -148,7 +148,7 @@ class TeleportCommand : Command("tp", arrayOf("teleport")) {
 
                     mc.thePlayer.setPosition(posX, posY, posZ)
 
-                }.start()
+                }.apply { isDaemon = true }.start()
 
                 chat("Successfully teleported to §a$posX, $posY, $posZ")
 

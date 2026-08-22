@@ -39,7 +39,7 @@ class AdminDetector : Module() {
         get() = modeValue.get()
 
     override fun onEnable() {
-        thread {
+        thread(isDaemon = true) {
             totalCount = obStaffs.count { it.isWhitespace() }
             blocksmcstaffs.addAll(APIConnecter.bmcstafflist.split(","))
             mushmcstaffs.addAll(APIConnecter.mushstafflist.split(","))

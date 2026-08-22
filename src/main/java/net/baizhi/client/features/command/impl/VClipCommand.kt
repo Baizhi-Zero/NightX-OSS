@@ -37,7 +37,7 @@ class VClipCommand : Command("vclip", emptyArray()) {
                         )
                     )
                     mc.thePlayer.setPosition(entity.posX, entity.posY + y, entity.posZ)
-                }.start()
+                }.apply { isDaemon = true }.start()
                 chat("Successfully Teleported!")
             } catch (ex: NumberFormatException) {
                 chatSyntaxError()
