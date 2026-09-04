@@ -30,14 +30,16 @@ class ArmorBreaker : Module() {
 
     private var mirror: Array<ItemStack?>? = null
     private var actionId = 0
-    private var lastSrcContainer = -1
+    private var swordLoc = -1
+    private var axeLoc = -1
     private var originalHeldStack: ItemStack? = null
     private var cachedTag = ""
 
     override fun onEnable() {
         mirror = null
         actionId = 0
-        lastSrcContainer = -1
+        swordLoc = -1
+        axeLoc = -1
         originalHeldStack = null
         cachedTag = ""
     }
@@ -45,14 +47,16 @@ class ArmorBreaker : Module() {
     override fun onDisable() {
         restoreHeldSlot()
         mirror = null
-        lastSrcContainer = -1
+        swordLoc = -1
+        axeLoc = -1
         cachedTag = ""
     }
 
     @EventTarget
     fun onWorld(event: WorldEvent) {
         mirror = null
-        lastSrcContainer = -1
+        swordLoc = -1
+        axeLoc = -1
         originalHeldStack = null
     }
 
@@ -65,9 +69,8 @@ class ArmorBreaker : Module() {
         val heldHotbar = player.inventory.currentItem
         val heldContainer = 36 + heldHotbar
 
-        val sword = bestWeapon(isSword = true, exclude = heldContainer)
-        val axe = bestWeapon(isSword = false, exclude = heldContainer)
-        if (sword == -1 || axe == -1) return
+        scanWeapons(m)
+        if (swordLoc == -1 || axeLoc == -1) return
 
         if (requireTarget.get()) {
             val target = findNearestTarget() ?: return
@@ -75,20 +78,25 @@ class ArmorBreaker : Module() {
         }
 
         repeat(switchesPerTick.get()) {
-            var src = if (lastSrcContainer == sword) axe else sword
-            if (src == lastSrcContainer) src = if (sword != heldContainer) sword else axe
-            if (src == heldContainer || src == -1) return
+            val heldStack = m[heldContainer]
+            val src = if (heldStack?.item is ItemSword) axeLoc else swordLoc
+            if (src == -1 || src == heldContainer) return
 
-            val expect = m[heldContainer]
-            val srcStack = m[src]
+            val srcStack = m[src] ?: return
 
             PacketUtils.sendPacketSilent(
-                C0EPacketClickWindow(0, src, heldHotbar, 2, expect, (++actionId).toShort())
+                C0EPacketClickWindow(0, src, heldHotbar, 2, srcStack, (++actionId).toShort())
             )
 
-            m[src] = expect
+            m[src] = heldStack
             m[heldContainer] = srcStack
-            lastSrcContainer = src
+
+            if (heldStack != null) {
+                if (heldStack.item is ItemSword) swordLoc = src
+                else if (heldStack.item is ItemAxe) axeLoc = src
+            }
+            if (srcStack.item is ItemSword) swordLoc = heldContainer
+            else if (srcStack.item is ItemAxe) axeLoc = heldContainer
         }
     }
 
@@ -114,22 +122,22 @@ class ArmorBreaker : Module() {
         return m
     }
 
-    private fun bestWeapon(isSword: Boolean, exclude: Int): Int {
-        val player = mc.thePlayer ?: return -1
-        var best = -1
-        var bestDmg = -1.0
+    private fun scanWeapons(m: Array<ItemStack?>) {
+        swordLoc = -1
+        axeLoc = -1
+        var bestSword = -1.0
+        var bestAxe = -1.0
         for (i in 0..44) {
-            if (i == exclude) continue
-            val stack = player.inventoryContainer.getSlot(i).stack ?: continue
-            val isWeapon = if (isSword) stack.item is ItemSword else stack.item is ItemAxe
-            if (!isWeapon) continue
+            val stack = m[i] ?: continue
             val dmg = attackDamage(stack)
-            if (dmg > bestDmg) {
-                bestDmg = dmg
-                best = i
+            if (stack.item is ItemSword && dmg > bestSword) {
+                bestSword = dmg
+                swordLoc = i
+            } else if (stack.item is ItemAxe && dmg > bestAxe) {
+                bestAxe = dmg
+                axeLoc = i
             }
         }
-        return best
     }
 
     private fun restoreHeldSlot() {
@@ -142,7 +150,7 @@ class ArmorBreaker : Module() {
             if (i == heldContainer) continue
             if (m[i] === original) {
                 PacketUtils.sendPacketSilent(
-                    C0EPacketClickWindow(0, i, player.inventory.currentItem, 2, m[heldContainer], (++actionId).toShort())
+                    C0EPacketClickWindow(0, i, player.inventory.currentItem, 2, m[i], (++actionId).toShort())
                 )
                 m[i] = m[heldContainer]
                 m[heldContainer] = original
