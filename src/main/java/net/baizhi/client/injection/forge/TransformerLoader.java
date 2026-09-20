@@ -12,9 +12,29 @@ import java.util.Map;
 public class TransformerLoader implements IFMLLoadingPlugin {
 
     public TransformerLoader() {
+        makeProcessDpiAware();
         MixinBootstrap.init();
         Mixins.addConfiguration("client.forge.mixins.json");
         MixinEnvironment.getDefaultEnvironment().setSide(MixinEnvironment.Side.CLIENT);
+    }
+
+    /**
+     * Opt in to per-monitor DPI awareness BEFORE the LWJGL window is created.
+     * Without this, Windows DPI-virtualizes the whole game surface on scaled
+     * displays (e.g. 110%/125%) and upscales the rendered bitmap, blurring
+     * every anti-aliased edge in the ImGui UI.
+     * JNA is already on the 1.8.9 classpath (net.java.dev.jna:jna:3.4.0).
+     */
+    private static void makeProcessDpiAware() {
+        try {
+            Object user32 = com.sun.jna.Native.loadLibrary("user32", DpiUser32.class);
+            ((DpiUser32) user32).SetProcessDPIAware();
+        } catch (Throwable ignored) {
+        }
+    }
+
+    public interface DpiUser32 extends com.sun.jna.Library {
+        boolean SetProcessDPIAware();
     }
 
     @Override

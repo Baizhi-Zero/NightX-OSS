@@ -122,7 +122,7 @@ object ImGuiManager {
 
         val sfuiBytes = resourceToBytes("/assets/minecraft/client/font/sfui.ttf")
         val mainConfig = ImFontConfig()
-        mainConfig.setPixelSnapH(true)
+        mainConfig.setPixelSnapH(false)
         val mainFont = atlas.addFontFromMemoryTTF(sfuiBytes, sfuiBytes.size, 18f, mainConfig)
 
         val chineseFont = File("C:/Windows/Fonts/simhei.ttf")

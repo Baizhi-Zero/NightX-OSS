@@ -122,7 +122,7 @@ public class TTFFontRenderer {
             }
         }
 
-        buffer.flip();
+        ((java.nio.Buffer) buffer).flip();
 
         GlStateManager.bindTexture(textureId);
 

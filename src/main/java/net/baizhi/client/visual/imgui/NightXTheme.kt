@@ -28,6 +28,9 @@ object NightXTheme {
         style.setItemInnerSpacing(8f, 5f)
         style.setAlpha(1f)
 
+        style.setCurveTessellationTol(1.6f)
+        style.setCircleTessellationMaxError(0.12f)
+
         val colors = style.getColors()
 
         colors[ImGuiCol.Text] = ImVec4(0.95f, 0.96f, 0.98f, 1f)

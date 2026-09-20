@@ -570,7 +570,7 @@ public class CustomSplashProgress {
 
                     for (int i = 0; i * (size / this.width) < this.frames; ++i) {
                         for (int j = 0; i * (size / this.width) + j < this.frames && j < size / this.width; ++j) {
-                            CustomSplashProgress.buf.clear();
+                            ((java.nio.Buffer) CustomSplashProgress.buf).clear();
                             final BufferedImage image = images[i * (size / this.width) + j];
 
                             for (int k = 0; k < this.height; ++k) {
@@ -579,7 +579,7 @@ public class CustomSplashProgress {
                                 }
                             }
 
-                            CustomSplashProgress.buf.position(0).limit(this.width * this.height);
+                            ((java.nio.Buffer) CustomSplashProgress.buf).position(0).limit(this.width * this.height);
                             GL11.glTexSubImage2D(3553, 0, j * this.width, i * this.height, this.width, this.height, 32993, 33639, CustomSplashProgress.buf);
                             CustomSplashProgress.checkGLError("Texture uploading");
                         }

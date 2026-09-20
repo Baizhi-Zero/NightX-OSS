@@ -46,12 +46,18 @@ class ImGuiClickGuiScreen : GuiScreen() {
 
     private val expanded = mutableSetOf<String>()
     private val expandAnim = mutableMapOf<String, Float>()
+    private val hoverAnim = mutableMapOf<String, Float>()
+    private val switchAnim = mutableMapOf<String, Float>()
     private var firstFrame = true
     private var frameCount = 0
 
     private var categoryBlend = 1f
     private var prevCategory: ModuleCategory = lastCategory
     private var categorySlideY = 0f
+    private var openAnim = 0f
+
+    private var sidebarSelTargetY = -1f
+    private var sidebarSelAnimY = -1f
 
     private val SIDEBAR_W = 180f
     private val WINDOW_W = 800f
@@ -61,6 +67,9 @@ class ImGuiClickGuiScreen : GuiScreen() {
     private val CARD_GAP = 10f
     private val CARD_ROUNDING = 10f
     private val ANIM_SPEED = 3.2f
+
+    private var winW = WINDOW_W
+    private var winH = WINDOW_H
 
     override fun initGui() {
         super.initGui()
@@ -73,6 +82,9 @@ class ImGuiClickGuiScreen : GuiScreen() {
         searchText = ""
         searchBuf.clear()
         firstFrame = true
+        openAnim = 0f
+        hoverAnim.clear()
+        switchAnim.clear()
     }
 
     override fun doesGuiPauseGame() = false
@@ -120,6 +132,8 @@ class ImGuiClickGuiScreen : GuiScreen() {
         val dt = ImGui.getIO().deltaTime.coerceAtMost(0.05f)
         val speed = ANIM_SPEED * dt
 
+        openAnim = min(1f, openAnim + dt * 3.2f)
+
         if (selectedCategory != prevCategory) {
             categoryBlend = 0f
             categorySlideY = 40f
@@ -148,7 +162,30 @@ class ImGuiClickGuiScreen : GuiScreen() {
             }
         }
         toRemove.forEach { expandAnim.remove(it) }
+
+        val hSpeed = min(1f, dt * 12f)
+        for ((k, v) in hoverAnim) {
+            val target = if (hoverTargets[k] == true) 1f else 0f
+            hoverAnim[k] = v + (target - v) * hSpeed
+        }
+
+        val sSpeed = min(1f, dt * 14f)
+        for ((k, v) in switchAnim) {
+            val target = if (switchTargets[k] == true) 1f else 0f
+            switchAnim[k] = v + (target - v) * sSpeed
+        }
+
+        if (sidebarSelTargetY >= 0f) {
+            if (sidebarSelAnimY < 0f || abs(sidebarSelTargetY - sidebarSelAnimY) > 220f) {
+                sidebarSelAnimY = sidebarSelTargetY
+            } else {
+                sidebarSelAnimY += (sidebarSelTargetY - sidebarSelAnimY) * min(1f, dt * 14f)
+            }
+        }
     }
+
+    private val hoverTargets = mutableMapOf<String, Boolean>()
+    private val switchTargets = mutableMapOf<String, Boolean>()
 
     private fun feedKeyEvents() {
         val io = ImGui.getIO()
@@ -186,27 +223,57 @@ class ImGuiClickGuiScreen : GuiScreen() {
         }
     }
 
+    private fun addSoftShadow(
+        draw: ImDrawList, x0: Float, y0: Float, x1: Float, y1: Float,
+        rounding: Float, alpha: Float
+    ) {
+        val layers = 5
+        for (i in layers downTo 1) {
+            val f = i / layers.toFloat()
+            val pad = 2f + (layers - i) * 3.4f
+            val a = alpha * f * f
+            if (a < 0.004f) continue
+            draw.addRectFilled(
+                x0 - pad, y0 - pad + 3f, x1 + pad, y1 + pad + 3f,
+                rgba(0f, 0f, 0f, a), rounding + pad
+            )
+        }
+    }
+
     private fun drawClickGui() {
+        val ease = easeOutCubic(openAnim)
         if (firstFrame) {
             ImGui.setNextWindowPos(winPosX, winPosY, ImGuiCond.Always)
             firstFrame = false
+        } else if (openAnim < 1f) {
+            ImGui.setNextWindowPos(winPosX, winPosY - (1f - ease) * 26f, ImGuiCond.Always)
         }
+
         ImGui.setNextWindowSize(WINDOW_W, WINDOW_H, ImGuiCond.FirstUseEver)
         val flags = ImGuiWindowFlags.NoTitleBar or ImGuiWindowFlags.NoResize or
             ImGuiWindowFlags.NoScrollbar or ImGuiWindowFlags.NoScrollWithMouse
+
+        val bgList = ImGui.getBackgroundDrawList()
+        addSoftShadow(bgList, winPosX, winPosY, winPosX + winW, winPosY + winH, 14f, 0.34f * ease)
+
         ImGui.pushStyleVar(ImGuiStyleVar.WindowPadding, 0f, 0f)
         ImGui.pushStyleVar(ImGuiStyleVar.WindowRounding, 12f)
         ImGui.pushStyleVar(ImGuiStyleVar.ChildRounding, 0f)
+        ImGui.pushStyleVar(ImGuiStyleVar.Alpha, 0.3f + 0.7f * ease)
         if (ImGui.begin("##ClickGUI", flags)) {
             winPosX = ImGui.getWindowPos().x
             winPosY = ImGui.getWindowPos().y
+            val winSize = ImGui.getWindowSize()
+            winW = winSize.x
+            winH = winSize.y
+
             val rH = ImGui.getContentRegionAvailY()
             renderSidebar(rH)
             ImGui.sameLine()
             renderMain(rH)
         }
         ImGui.end()
-        ImGui.popStyleVar(3)
+        ImGui.popStyleVar(4)
         frameCount++
     }
 
@@ -253,17 +320,25 @@ class ImGuiClickGuiScreen : GuiScreen() {
         ImGui.spacing()
         ImGui.spacing()
 
+        if (sidebarSelTargetY >= 0f && sidebarSelAnimY >= 0f) {
+            val sel = sidebarSelAnimY
+            val selA = min(1f, categoryBlend + 0.35f)
+            draw.addRectFilled(
+                sx + 4f, sel, sx + SIDEBAR_W - 6f, sel + 32f,
+                rgba(0.169f, 0.118f, 0.290f, selA), 6f
+            )
+            draw.addRectFilled(
+                sx + 4f, sel + 5f, sx + 7f, sel + 27f,
+                rgba(0.55f, 0.40f, 0.85f, selA), 2f
+            )
+        }
+
         for (cat in ModuleCategory.values()) {
             val count = Launch.moduleManager.modules.count { it.category == cat }
             if (count == 0) continue
             val sel = cat == selectedCategory
-
             if (sel) {
-                val catDraw = ImGui.getWindowDrawList()
-                val cx = ImGui.getWindowPos().x
-                val cy = ImGui.getCursorScreenPos().y
-                catDraw.addRectFilled(cx, cy, cx + SIDEBAR_W - 2f, cy + 32f, rgba(0.169f, 0.118f, 0.290f, 1f), 6f)
-                catDraw.addRectFilled(cx, cy + 5f, cx + 3f, cy + 27f, rgba(0.55f, 0.40f, 0.85f, 1f), 2f)
+                sidebarSelTargetY = ImGui.getCursorScreenPos().y
             }
 
             ImGui.pushStyleColor(ImGuiCol.Text, if (sel) 0.85f else 0.60f, if (sel) 0.75f else 0.62f, if (sel) 1.0f else 0.68f, 1f)
@@ -304,7 +379,7 @@ class ImGuiClickGuiScreen : GuiScreen() {
 
         val titleYOffset = categorySlideY
         ImGui.setCursorPos(padX, padY + titleYOffset)
-        ImGui.pushStyleColor(ImGuiCol.Text, 0.95f, 0.96f, 0.98f, 1f)
+        ImGui.pushStyleColor(ImGuiCol.Text, 0.95f, 0.96f, 0.98f, categoryBlend)
         ImGui.text("${selectedCategory.displayName} Modules")
         ImGui.popStyleColor()
 
@@ -312,14 +387,14 @@ class ImGuiClickGuiScreen : GuiScreen() {
         ImGui.pushItemWidth(180f)
         ImGui.pushStyleVar(ImGuiStyleVar.FrameRounding, 6f)
         ImGui.pushStyleVar(ImGuiStyleVar.FramePadding, 10f, 5f)
-        ImGui.pushStyleColor(ImGuiCol.FrameBg, 0.078f, 0.067f, 0.125f, 1f)
-        ImGui.pushStyleColor(ImGuiCol.FrameBgHovered, 0.094f, 0.082f, 0.149f, 1f)
+        ImGui.pushStyleColor(ImGuiCol.FrameBg, 0.078f, 0.067f, 0.125f, categoryBlend)
+        ImGui.pushStyleColor(ImGuiCol.FrameBgHovered, 0.094f, 0.082f, 0.149f, categoryBlend)
         ImGui.inputText("##search", searchBuf, ImGuiInputTextFlags.None)
         if (searchBuf.get().isEmpty()) {
             val draw = ImGui.getWindowDrawList()
             val pos = ImGui.getItemRectMin()
             val size = ImGui.getItemRectSize()
-            draw.addText(pos.x + 10f, pos.y + size.y / 2f - ImGui.calcTextSize("Search...").y / 2f, rgba(0.541f, 0.522f, 0.620f, 0.7f), "Search...")
+            draw.addText(pos.x + 10f, pos.y + size.y / 2f - ImGui.calcTextSize("Search...").y / 2f, rgba(0.541f, 0.522f, 0.620f, 0.7f * categoryBlend), "Search...")
         }
         ImGui.popStyleColor(2)
         ImGui.popStyleVar(2)
@@ -395,7 +470,7 @@ class ImGuiClickGuiScreen : GuiScreen() {
 
     private fun renderModuleCard(
         mod: Module, x: Float, y: Float, w: Float, h: Float,
-        expandAnim: Float, values: List<Value<*>>
+        expandA: Float, values: List<Value<*>>
     ) {
         val isActive = mod.state
         val draw = ImGui.getWindowDrawList()
@@ -404,44 +479,62 @@ class ImGuiClickGuiScreen : GuiScreen() {
         val my = io.mousePos.y
         val hoveredHeader = mx >= x && mx < x + w && my >= y && my < y + CARD_HEADER_H
 
+        hoverTargets[mod.name] = hoveredHeader
+        val hov = hoverAnim.getOrPut(mod.name) { 0f }
+        val ca = categoryBlend
+
+        val yL = y - 1.5f * hov
+
+        addSoftShadow(draw, x, yL, x + w, yL + h, CARD_ROUNDING, (0.16f + 0.20f * hov + (if (isActive) 0.10f else 0f)) * ca)
+
         val bgCol: Int
         if (isActive) {
-            bgCol = rgba(0.239f, 0.106f, 0.427f, 1f)
-            draw.addRectFilled(x - 2f, y - 2f, x + w + 2f, y + h + 2f, rgba(0.239f, 0.106f, 0.427f, 0.15f), CARD_ROUNDING + 3f)
+            bgCol = rgba(0.239f, 0.106f, 0.427f, ca)
+            draw.addRectFilled(
+                x - 2f, yL - 2f, x + w + 2f, yL + h + 2f,
+                rgba(0.239f, 0.106f, 0.427f, 0.10f * ca), CARD_ROUNDING + 4f
+            )
+            draw.addRectFilled(
+                x - 1f, yL - 1f, x + w + 1f, yL + h + 1f,
+                rgba(0.239f, 0.106f, 0.427f, (0.16f + 0.10f * hov) * ca), CARD_ROUNDING + 2f
+            )
         } else {
-            bgCol = if (hoveredHeader) rgba(0.137f, 0.118f, 0.220f, 1f) else rgba(0.094f, 0.082f, 0.149f, 1f)
+            val r = 0.094f + (0.137f - 0.094f) * hov
+            val g = 0.082f + (0.118f - 0.082f) * hov
+            val b = 0.149f + (0.220f - 0.149f) * hov
+            bgCol = rgba(r, g, b, ca)
         }
 
-        draw.addRectFilled(x, y, x + w, y + h, bgCol, CARD_ROUNDING)
+        draw.addRectFilled(x, yL, x + w, yL + h, bgCol, CARD_ROUNDING)
 
         if (isActive) {
-            draw.addRectFilled(x, y + h * 0.72f, x + w, y + h, rgba(0.15f, 0.05f, 0.30f, 0.35f), CARD_ROUNDING)
+            draw.addRectFilled(x, yL + h * 0.72f, x + w, yL + h, rgba(0.15f, 0.05f, 0.30f, 0.35f * ca), CARD_ROUNDING)
+            val accentA = (0.55f + 0.35f * hov) * ca
+            draw.addRectFilled(x + 10f, yL + h - 3f, x + w - 10f, yL + h - 1f, rgba(0.85f, 0.70f, 1f, accentA), 2f)
         }
 
-        val nameCol = if (isActive) rgba(1f, 1f, 1f, 1f) else if (hoveredHeader) rgba(0.85f, 0.83f, 0.95f, 1f) else rgba(0.541f, 0.522f, 0.620f, 1f)
-        draw.addText(
-            x + CARD_PAD + 2f, y + 12f,
-            nameCol,
-            mod.spacedName
-        )
+        val nameCol = if (isActive) rgba(1f, 1f, 1f, ca)
+            else rgba(
+                0.541f + (0.85f - 0.541f) * hov,
+                0.522f + (0.83f - 0.522f) * hov,
+                0.620f + (0.95f - 0.620f) * hov, ca
+            )
+        draw.addText(x + CARD_PAD + 2f, yL + 12f, nameCol, mod.spacedName)
 
         val tag = mod.tag
         if (tag != null) {
             val tagStr = "[$tag]"
             val tagW = ImGui.calcTextSize(tagStr).x
-            val tagColor = if (isActive) rgba(1f, 1f, 1f, 0.55f) else rgba(0.45f, 0.44f, 0.54f, 0.8f)
-            draw.addText(
-                x + w - CARD_PAD - 2f - tagW, y + 13f,
-                tagColor,
-                tagStr
-            )
+            val tagColor = if (isActive) rgba(1f, 1f, 1f, 0.55f * ca) else rgba(0.45f, 0.44f, 0.54f, 0.8f * ca)
+            draw.addText(x + w - CARD_PAD - 2f - tagW, yL + 13f, tagColor, tagStr)
         }
 
-        val indicatorColor = if (isActive) rgba(1f, 1f, 1f, 1f) else rgba(0.541f, 0.522f, 0.620f, 0.9f)
+        val pulse = sin(frameCount * 0.09f) * 0.5f + 0.5f
+        val indicatorColor = if (isActive) rgba(1f, 1f, 1f, ca) else rgba(0.541f, 0.522f, 0.620f, 0.9f * ca)
         if (isActive) {
-            draw.addCircleFilled(x + w - 12f, y + CARD_HEADER_H / 2f, 5f, rgba(1f, 1f, 1f, 0.25f))
+            draw.addCircleFilled(x + w - 12f, yL + CARD_HEADER_H / 2f, 5f + pulse * 2f, rgba(1f, 1f, 1f, 0.22f * ca))
         }
-        draw.addCircleFilled(x + w - 12f, y + CARD_HEADER_H / 2f, 3f, indicatorColor)
+        draw.addCircleFilled(x + w - 12f, yL + CARD_HEADER_H / 2f, 3f, indicatorColor)
 
         if (hoveredHeader && io.mouseClicked[0]) {
             mod.state = !mod.state
@@ -451,11 +544,11 @@ class ImGuiClickGuiScreen : GuiScreen() {
             if (mod.name in expanded) expanded.remove(mod.name) else expanded.add(mod.name)
         }
 
-        if (expandAnim > 0.01f && values.isNotEmpty()) {
-            val settingsTop = y + CARD_HEADER_H
+        if (expandA > 0.01f && values.isNotEmpty()) {
+            val settingsTop = yL + CARD_HEADER_H
             val settingsH = h - CARD_HEADER_H
 
-            val settingsBg = if (isActive) rgba(0.18f, 0.08f, 0.32f, expandAnim) else rgba(0.078f, 0.067f, 0.125f, expandAnim)
+            val settingsBg = if (isActive) rgba(0.18f, 0.08f, 0.32f, expandA * ca) else rgba(0.078f, 0.067f, 0.125f, expandA * ca)
             draw.addRectFilled(
                 x + 1f, settingsTop,
                 x + w - 1f, settingsTop + settingsH,
@@ -463,7 +556,7 @@ class ImGuiClickGuiScreen : GuiScreen() {
             )
             draw.addLine(
                 x + 6f, settingsTop + 1f, x + w - 6f, settingsTop + 1f,
-                rgba(0.541f, 0.522f, 0.620f, 0.18f * expandAnim), 1f
+                rgba(0.541f, 0.522f, 0.620f, 0.18f * expandA * ca), 1f
             )
 
             ImGui.pushID("set_${mod.name}")
@@ -473,17 +566,17 @@ class ImGuiClickGuiScreen : GuiScreen() {
             ImGui.pushStyleVar(ImGuiStyleVar.FramePadding, 0f, 2f)
             ImGui.pushStyleVar(ImGuiStyleVar.ItemSpacing, 6f, 4f)
             ImGui.pushStyleColor(ImGuiCol.ChildBg, 0f, 0f, 0f, 0f)
-            ImGui.pushStyleColor(ImGuiCol.Text, 0.85f, 0.83f, 0.95f, expandAnim)
-            ImGui.pushStyleColor(ImGuiCol.FrameBg, 0.16f, 0.14f, 0.24f, expandAnim)
-            ImGui.pushStyleColor(ImGuiCol.FrameBgHovered, 0.22f, 0.19f, 0.33f, expandAnim)
-            ImGui.pushStyleColor(ImGuiCol.SliderGrab, 0.55f, 0.40f, 0.85f, 0.9f * expandAnim)
-            ImGui.pushStyleColor(ImGuiCol.SliderGrabActive, 0.65f, 0.50f, 0.95f, expandAnim)
-            ImGui.pushStyleColor(ImGuiCol.CheckMark, 0.55f, 0.40f, 0.85f, expandAnim)
+            ImGui.pushStyleColor(ImGuiCol.Text, 0.85f, 0.83f, 0.95f, expandA * ca)
+            ImGui.pushStyleColor(ImGuiCol.FrameBg, 0.16f, 0.14f, 0.24f, expandA * ca)
+            ImGui.pushStyleColor(ImGuiCol.FrameBgHovered, 0.22f, 0.19f, 0.33f, expandA * ca)
+            ImGui.pushStyleColor(ImGuiCol.SliderGrab, 0.55f, 0.40f, 0.85f, 0.9f * expandA * ca)
+            ImGui.pushStyleColor(ImGuiCol.SliderGrabActive, 0.65f, 0.50f, 0.95f, expandA * ca)
+            ImGui.pushStyleColor(ImGuiCol.CheckMark, 0.55f, 0.40f, 0.85f, expandA * ca)
 
             ImGui.beginChild("##sv_${mod.name}", w - 24f, settingsH - 16f, false)
             for (v in values) {
                 if (!v.canDisplay()) continue
-                renderSetting(v)
+                renderSetting(v, expandA)
             }
             ImGui.endChild()
 
@@ -493,46 +586,46 @@ class ImGuiClickGuiScreen : GuiScreen() {
         }
     }
 
-    private fun renderSetting(value: Value<*>) {
+    private fun renderSetting(value: Value<*>, expandA: Float) {
         when (value) {
             is BoolValue -> {
-                ImGui.pushStyleColor(ImGuiCol.Text, 0.75f, 0.76f, 0.82f, 1f)
+                ImGui.pushStyleColor(ImGuiCol.Text, 0.75f, 0.76f, 0.82f, expandA)
                 ImGui.text(value.name)
                 ImGui.popStyleColor()
-                ImGui.sameLine(ImGui.getContentRegionAvailX() - 20f)
-                val b = ImBoolean(value.get())
-                if (ImGui.checkbox("##${value.name}", b)) value.changeValue(b.get())
+                renderToggleSwitch(value, expandA)
             }
             is FloatValue -> {
-                ImGui.pushStyleColor(ImGuiCol.Text, 0.75f, 0.76f, 0.82f, 1f)
+                ImGui.pushStyleColor(ImGuiCol.Text, 0.75f, 0.76f, 0.82f, expandA)
                 ImGui.text(value.name)
                 ImGui.popStyleColor()
                 var v = floatArrayOf(value.get())
                 ImGui.pushItemWidth(ImGui.getContentRegionAvailX() - 70f)
                 if (ImGui.sliderFloat("##f_${value.name}", v, value.minimum, value.maximum)) value.changeValue(v[0])
+                drawSliderFill(ImGui.getItemRectMin(), ImGui.getItemRectMax(), (v[0] - value.minimum) / (value.maximum - value.minimum), expandA)
                 ImGui.popItemWidth()
                 ImGui.sameLine()
-                ImGui.pushStyleColor(ImGuiCol.Text, 0.90f, 0.92f, 0.96f, 1f)
+                ImGui.pushStyleColor(ImGuiCol.Text, 0.90f, 0.92f, 0.96f, expandA)
                 val txt = if (value.suffix.isEmpty()) String.format(Locale.US, "%.2f", v[0]) else String.format(Locale.US, "%.2f %s", v[0], value.suffix)
                 ImGui.text(txt)
                 ImGui.popStyleColor()
             }
             is IntegerValue -> {
-                ImGui.pushStyleColor(ImGuiCol.Text, 0.75f, 0.76f, 0.82f, 1f)
+                ImGui.pushStyleColor(ImGuiCol.Text, 0.75f, 0.76f, 0.82f, expandA)
                 ImGui.text(value.name)
                 ImGui.popStyleColor()
                 var v = intArrayOf(value.get())
                 ImGui.pushItemWidth(ImGui.getContentRegionAvailX() - 70f)
                 if (ImGui.sliderInt("##i_${value.name}", v, value.minimum, value.maximum)) value.changeValue(v[0])
+                drawSliderFill(ImGui.getItemRectMin(), ImGui.getItemRectMax(), (v[0] - value.minimum.toFloat()) / (value.maximum - value.minimum), expandA)
                 ImGui.popItemWidth()
                 ImGui.sameLine()
-                ImGui.pushStyleColor(ImGuiCol.Text, 0.90f, 0.92f, 0.96f, 1f)
+                ImGui.pushStyleColor(ImGuiCol.Text, 0.90f, 0.92f, 0.96f, expandA)
                 val txt = if (value.suffix.isEmpty()) "${v[0]}" else "${v[0]} ${value.suffix}"
                 ImGui.text(txt)
                 ImGui.popStyleColor()
             }
             is ListValue -> {
-                ImGui.pushStyleColor(ImGuiCol.Text, 0.75f, 0.76f, 0.82f, 1f)
+                ImGui.pushStyleColor(ImGuiCol.Text, 0.75f, 0.76f, 0.82f, expandA)
                 ImGui.text(value.name)
                 ImGui.popStyleColor()
                 val opts = value.values
@@ -543,7 +636,7 @@ class ImGuiClickGuiScreen : GuiScreen() {
                 ImGui.popItemWidth()
             }
             is TextValue -> {
-                ImGui.pushStyleColor(ImGuiCol.Text, 0.75f, 0.76f, 0.82f, 1f)
+                ImGui.pushStyleColor(ImGuiCol.Text, 0.75f, 0.76f, 0.82f, expandA)
                 ImGui.text(value.name)
                 ImGui.popStyleColor()
                 val buf = ImString(value.get(), 64)
@@ -552,15 +645,54 @@ class ImGuiClickGuiScreen : GuiScreen() {
                 ImGui.popItemWidth()
             }
             else -> {
-                ImGui.pushStyleColor(ImGuiCol.Text, 0.75f, 0.76f, 0.82f, 1f)
+                ImGui.pushStyleColor(ImGuiCol.Text, 0.75f, 0.76f, 0.82f, expandA)
                 ImGui.text(value.name)
                 ImGui.popStyleColor()
                 ImGui.sameLine()
-                ImGui.pushStyleColor(ImGuiCol.Text, 0.90f, 0.92f, 0.96f, 1f)
+                ImGui.pushStyleColor(ImGuiCol.Text, 0.90f, 0.92f, 0.96f, expandA)
                 ImGui.text("${value.get()}")
                 ImGui.popStyleColor()
             }
         }
+    }
+
+    private fun renderToggleSwitch(value: BoolValue, expandA: Float) {
+        val wpx = 34f
+        val hpx = 18f
+        ImGui.sameLine(ImGui.getContentRegionAvailX() - wpx)
+        ImGui.pushID("sw_${value.name}")
+        switchTargets[value.name] = value.get()
+        val clicked = ImGui.invisibleButton("##t", wpx, hpx)
+        if (clicked) value.changeValue(!value.get())
+        val p0 = ImGui.getItemRectMin()
+        val p1 = ImGui.getItemRectMax()
+        ImGui.popID()
+
+        val a = expandA
+        val t = switchAnim[value.name] ?: 0f
+        val draw = ImGui.getWindowDrawList()
+        val r = 0.30f + (0.55f - 0.30f) * t
+        val g = 0.28f + (0.40f - 0.28f) * t
+        val b = 0.34f + (0.85f - 0.34f) * t
+        draw.addRectFilled(p0.x, p0.y, p1.x, p1.y, rgba(r, g, b, a), hpx / 2f)
+        draw.addRectFilled(p0.x, p0.y, p0.x + (p1.x - p0.x) * t, p1.y, rgba(0.65f, 0.50f, 0.95f, a), hpx / 2f)
+        val kx = p0.x + 9f + t * (wpx - 18f)
+        draw.addCircleFilled(kx, p0.y + hpx / 2f, 6.5f, rgba(1f, 1f, 1f, 0.9f * a))
+    }
+
+    private fun drawSliderFill(rmin: ImVec2, rmax: ImVec2, rawRatio: Float, expandA: Float) {
+        if (expandA < 0.05f) return
+        val ratio = rawRatio.coerceIn(0f, 1f)
+        val draw = ImGui.getWindowDrawList()
+        val fillR = rmin.x + 2f + (rmax.x - rmin.x - 4f) * ratio
+        draw.addRectFilled(rmin.x + 2f, rmin.y + 3f, fillR, rmax.y - 3f, rgba(0.55f, 0.40f, 0.85f, 0.38f * expandA), 4f)
+        draw.addRectFilled(fillR - 1f, rmin.y + 3f, fillR + 1f, rmax.y - 3f, rgba(1f, 1f, 1f, 0.55f * expandA), 1f)
+    }
+
+    private fun easeOutCubic(t: Float): Float {
+        val p = t.coerceIn(0f, 1f)
+        val inv = 1f - p
+        return 1f - inv * inv * inv
     }
 
     private fun rgba(r: Float, g: Float, b: Float, a: Float): Int {

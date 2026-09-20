@@ -41,6 +41,7 @@ class ModuleManager : Listenable {
             KillAuraV2::class.java,
             KillAuraBlatant::class.java,
             KillAuraRecode::class.java,
+            KillAuraTest::class.java,
             ArmorBreaker::class.java,
             PacketCriticals::class.java,
             Stasis::class.java,

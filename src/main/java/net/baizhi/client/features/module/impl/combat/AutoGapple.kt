@@ -12,6 +12,7 @@ import net.baizhi.client.value.FloatValue
 import net.baizhi.client.value.IntegerValue
 import net.baizhi.client.value.ListValue
 import net.minecraft.init.Items
+import net.minecraft.item.ItemFood
 import net.minecraft.network.play.client.C03PacketPlayer
 import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement
 import net.minecraft.network.play.client.C09PacketHeldItemChange
@@ -27,6 +28,7 @@ class AutoGapple : Module() {
     private val healthValue = FloatValue("Health", 10F, 1F, 20F)
     private val delayValue = IntegerValue("Delay", 150, 0, 1000, "ms")
     private val noAbsorption = BoolValue("NoAbsorption", true)
+    private val itemValue = ListValue("Item", arrayOf("Gapple", "All"), "Gapple")
     private val timer = MSTimer()
 
     @EventTarget
@@ -53,7 +55,11 @@ class AutoGapple : Module() {
                     val headInHotbar = InventoryUtils.findItem(36, 45, Items.skull)
                     if (headInHotbar != -1) {
                         mc.netHandler.addToSendQueue(C09PacketHeldItemChange(headInHotbar - 36))
-                        mc.netHandler.addToSendQueue(C08PacketPlayerBlockPlacement(mc.thePlayer.heldItem))
+                        mc.netHandler.addToSendQueue(
+                            C08PacketPlayerBlockPlacement(
+                                mc.thePlayer.inventoryContainer.getSlot(headInHotbar).stack
+                            )
+                        )
                         mc.netHandler.addToSendQueue(C09PacketHeldItemChange(mc.thePlayer.inventory.currentItem))
                         timer.reset()
                     }
@@ -69,10 +75,14 @@ class AutoGapple : Module() {
                 return
         }
 
-        val gappleInHotbar = InventoryUtils.findItem(36, 45, Items.golden_apple)
-        if (gappleInHotbar != -1) {
-            mc.netHandler.addToSendQueue(C09PacketHeldItemChange(gappleInHotbar - 36))
-            mc.netHandler.addToSendQueue(C08PacketPlayerBlockPlacement(mc.thePlayer.heldItem))
+        val foodSlot = findFoodSlot()
+        if (foodSlot != -1) {
+            mc.netHandler.addToSendQueue(C09PacketHeldItemChange(foodSlot - 36))
+            mc.netHandler.addToSendQueue(
+                C08PacketPlayerBlockPlacement(
+                    mc.thePlayer.inventoryContainer.getSlot(foodSlot).stack
+                )
+            )
             isEating = true
             repeat(35) {
                 mc.netHandler.addToSendQueue(C03PacketPlayer(mc.thePlayer.onGround))
@@ -80,9 +90,20 @@ class AutoGapple : Module() {
             isEating = false
             mc.netHandler.addToSendQueue(C09PacketHeldItemChange(mc.thePlayer.inventory.currentItem))
         } else if (warn)
-            chat("No gapple were found in hotbar")
+            chat("No food were found in hotbar")
+    }
+
+    private fun findFoodSlot(): Int {
+        if (itemValue.get().lowercase(Locale.getDefault()) == "gapple") {
+            return InventoryUtils.findItem(36, 45, Items.golden_apple)
+        }
+        for (i in 36..44) {
+            val stack = mc.thePlayer.inventoryContainer.getSlot(i).stack
+            if (stack != null && stack.item is ItemFood) return i
+        }
+        return -1
     }
 
     override val tag: String
-        get() = modeValue.get()
+        get() = modeValue.get() + " " + itemValue.get()
 }
